@@ -6,7 +6,7 @@
 <title>Рабочий таймер</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root{--bg:#0a0a0c;--s1:#131316;--s2:#1c1c21;--line:rgba(255,255,255,.07);--tx:#f3f3f5;--mut:#8a8a94;--dim:#4d4d56;--acc:#c8f04a;--acc-tx:#0a0a0c;--red:#ff5d5d;--amb:#ffb648;--mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Mono",Menlo,Consolas,monospace}
+:root{--bg:#0a0a0c;--s1:#131316;--s2:#1c1c21;--line:rgba(255,255,255,.07);--tx:#f3f3f5;--mut:#8a8a94;--dim:#4d4d56;--acc:#4a8cff;--acc-tx:#ffffff;--red:#ff5d5d;--amb:#ffb648;--mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Mono",Menlo,Consolas,monospace}
 html{color-scheme:dark}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none;touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -27,7 +27,7 @@ h3{margin:0 0 10px;font-size:15px;font-weight:600}
 .line>span:last-child{white-space:nowrap}
 select{width:100%;padding:12px 14px;border-radius:12px;border:0;background:var(--s2);color:var(--tx);font:inherit;margin:4px 0 8px}
 input,textarea{width:100%;padding:12px 14px;border-radius:12px;border:1px solid transparent;background:var(--s2);color:var(--tx);font:inherit;margin:4px 0 8px}
-input:focus,textarea:focus{outline:none;border-color:rgba(200,240,74,.5)}
+input:focus,textarea:focus{outline:none;border-color:rgba(74,140,255,.5)}
 input::placeholder{color:var(--dim)}
 textarea{font:12px/1.5 var(--mono);min-height:260px;color:var(--mut)}
 .btn{width:100%;padding:14px;border:0;border-radius:14px;background:var(--acc);color:var(--acc-tx);font:inherit;font-weight:600;margin:4px 0}
@@ -44,8 +44,8 @@ textarea{font:12px/1.5 var(--mono);min-height:260px;color:var(--mut)}
 .hero-top{padding:18px 60px 0 2px}
 .greet{font-size:clamp(24px,3.8vh,30px);font-weight:700;letter-spacing:-.02em;margin-top:6px}
 .hero-mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:clamp(18px,4.5vh,48px) 0 clamp(18px,4.5vh,44px)}
-.go{position:relative;display:grid;place-items:center;width:clamp(160px,28vh,220px);height:clamp(160px,28vh,220px);border-radius:50%;border:0;background:radial-gradient(circle at 35% 30%,#d9ff6e,var(--acc) 60%);color:var(--acc-tx);font:inherit;font-size:26px;font-weight:700;letter-spacing:-.01em;box-shadow:0 0 0 12px rgba(200,240,74,.06),0 28px 80px rgba(200,240,74,.2);transition:transform .15s}
-.go::before,.go::after{content:'';position:absolute;inset:-12px;border-radius:50%;border:1px solid rgba(200,240,74,.35);animation:ripple 3.6s ease-out infinite;pointer-events:none}
+.go{position:relative;display:grid;place-items:center;width:clamp(160px,28vh,220px);height:clamp(160px,28vh,220px);border-radius:50%;border:0;background:radial-gradient(circle at 35% 30%,#8db8ff,var(--acc) 60%);color:var(--acc-tx);font:inherit;font-size:26px;font-weight:700;letter-spacing:-.01em;box-shadow:0 0 0 12px rgba(74,140,255,.06),0 28px 80px rgba(74,140,255,.2);transition:transform .15s}
+.go::before,.go::after{content:'';position:absolute;inset:-12px;border-radius:50%;border:1px solid rgba(74,140,255,.35);animation:ripple 3.6s ease-out infinite;pointer-events:none}
 .go::after{animation-delay:1.8s}
 @keyframes ripple{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.32);opacity:0}}
 .go-cap{margin-top:clamp(24px,5vh,46px);text-align:center}
@@ -65,7 +65,7 @@ textarea{font:12px/1.5 var(--mono);min-height:260px;color:var(--mut)}
 .item{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;border:0;background:var(--s2);color:var(--tx);font:inherit;padding:13px 14px;border-radius:14px;margin:6px 0}
 .pcard{display:block;width:100%;text-align:left;color:var(--tx);font:inherit;cursor:pointer}
 .badge{display:inline-block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:20px;background:var(--s2);color:var(--mut);font-weight:500;vertical-align:middle}
-.badge.done{background:rgba(200,240,74,.12);color:var(--acc)}
+.badge.done{background:rgba(74,140,255,.12);color:var(--acc)}
 .big{font-family:var(--mono);font-size:30px;font-weight:600;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
 .grid .card{margin:0}
@@ -115,13 +115,18 @@ details.sw summary{text-align:center;padding:8px}
 .mbtns{display:flex;gap:8px}.mbtns .btn{flex:1;margin:0}
 .btn.danger{background:var(--red);color:#fff}
 .tf{display:flex;align-items:center;gap:6px;background:var(--s2);border-radius:12px;padding:0 0 0 12px;margin:4px 0 8px;border:1px solid transparent}
-.tf:focus-within{border-color:rgba(200,240,74,.5)}
+.tf:focus-within{border-color:rgba(74,140,255,.5)}
 .tf span{color:var(--mut);white-space:nowrap;font-size:15px}
 .tf input{margin:0;border:0;background:none;padding-left:4px}
 .tf input:focus{border:0}
 .tags{display:flex;flex-wrap:wrap;gap:6px}
 .tag{display:inline-flex;align-items:center;gap:2px;font-size:12px;padding:3px 9px;border-radius:20px;background:rgba(139,124,255,.14);color:#b6acff;white-space:nowrap}
 .tag button{border:0;background:none;color:inherit;opacity:.7;font-size:11px;padding:0 0 0 4px}
+.lg{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:0}
+.acbox{position:fixed;z-index:70;background:#1a1a20;border:1px solid var(--line);border-radius:12px;max-height:220px;overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.5);padding:4px}
+.aci{padding:11px 12px;border-radius:9px;cursor:pointer}
+.aci b{color:var(--acc);font-weight:600}
+.aci.on,.aci:hover{background:var(--s2)}
 .x{border:0;background:none;color:var(--dim);font-size:16px;padding:4px 8px}
 a.back{color:var(--mut);text-decoration:none;display:inline-block;margin-top:16px;font-size:14px}
 .top{color:var(--acc)}.low{color:var(--red)}
@@ -306,9 +311,9 @@ const allE = () => S && S.t && S.r ? E.concat([{ t: S.t, a: S.r, b: now(), w: S.
 const allW = () => S ? W.concat([{ id: S.w.id, a: S.w.a, b: now(), open: true, k: S.k.concat(S.br ? [[S.br, now()]] : []) }]) : W;
 const sum = es => es.reduce((x, e) => x + e.b - e.a, 0);
 const brSec = w => (w.k || []).reduce((x, k) => x + k[1] - k[0], 0);
-const wWork = w => w.b - w.a - brSec(w); // длительность сессии без перерывов
+const wWork = w => w.b - w.a; // длительность сессии целиком, вместе с перерывами (перерывы — brSec)
 const sessBreaks = () => S ? S.k.reduce((x, k) => x + k[1] - k[0], 0) + (S.br ? now() - S.br : 0) : 0;
-const sessWork = () => S ? now() - S.w.a - sessBreaks() : 0;
+const sessWork = () => S ? now() - S.w.a : 0; // общий таймер идёт и во время перерыва
 const taskSec = id => sum(allE().filter(e => e.t === id));
 const projSec = pid => { const ids = new Set(T.filter(t => t.p === pid).map(t => t.id)); return sum(allE().filter(e => ids.has(e.t))); };
 const shiftEs = wid => allE().filter(e => e.w === wid);
@@ -317,7 +322,7 @@ const priceTxt = p => p.u ? 'не указана' : money(p.pr);
 const base = p => p.pr - p.h.reduce((x, h) => x + h[1], 0);
 
 /* ===== Рабочая сессия и задачи ===== */
-function addEntry(t, a, b, w) { if (b - a < 5) return; E.push({ id: uid(), t, a, b, w }); saveM(ymOf(a)); }
+function addEntry(t, a, b, w) { if (b - a < 1) return; /* отрезки от 1 секунды — чтобы ничего не пропадало из кольца */ E.push({ id: uid(), t, a, b, w }); saveM(ymOf(a)); }
 function closeInterval() { if (S && S.t && S.r) { addEntry(S.t, S.r, now(), S.w.id); S.r = null; } }
 const newS = () => ({ w: { id: uid(), a: now() }, t: null, r: null, k: [], br: null, bt: null });
 function startShift() { S = newS(); ended = null; buzz(); saveS(); render(); }
@@ -332,7 +337,7 @@ function resumeTask() { if (S && S.t && !S.r && !S.br) { S.r = now(); buzz(); sa
 function takeBreak() { if (!S || S.br) return; S.bt = S.t && S.r ? S.t : null; closeInterval(); S.br = now(); buzz(); saveS(); render(); }
 function stopBreak(resume) {
   if (!S || !S.br) return; const t = now();
-  if (t - S.br >= 5) S.k.push([S.br, t]);
+  if (t - S.br >= 1) S.k.push([S.br, t]);
   S.br = null;
   if (resume !== false && S.bt && task(S.bt) && !task(S.bt).d) { S.t = S.bt; S.r = t; }
   S.bt = null;
@@ -367,7 +372,10 @@ function newTask(pid, andGo, src) {
   const el = src ? (src.tagName === 'INPUT' ? src : src.parentNode.querySelector('input')) : $('#nt-' + pid), n = el.value.trim();
   if (!n) return el.focus();
   const t = { id: uid(), p: pid, n, d: 0 }; T.push(t); saveT();
-  if (andGo) go(t.id); else render();
+  if (andGo) return go(t.id);
+  render();
+  const nx = $('#nt-' + pid); // поле «Новая подзадача» — сразу снова в фокус, чтобы вводить следующую
+  if (nx) { nx.focus(); nx.scrollIntoView({ block: 'center' }); }
 }
 let fIdx = 0, kIdx = 0, addF = false;
 const pgIdx = () => tab === 'home' ? kIdx : fIdx;
@@ -731,9 +739,9 @@ function shiftInfo(w) {
 function reportText() {
   const D = periodData(), r = D.r;
   let t = `ОТЧЁТ ПО РАБОТЕ — ${sMode === 'week' ? 'неделя' : 'месяц'}: ${r.label} (${fdate(r.a)} – ${fdate(r.last)})\n`;
-  t += `Валюта: рубли. Рабочая сессия = время от старта до завершения за вычетом перерывов (во время перерыва общий таймер и таймер задачи стоят). Работа над задачами = время, когда шёл таймер конкретной задачи. Ставка проекта = полная стоимость ÷ все часы работы над задачами проекта. «Заработано за период» = часы по задачам за период × ставка проекта. ВАЖНО: у незавершённых проектов (статус «в работе») ставка НЕ финальная — проект ещё не закрыт, часы будут добавляться, и итоговая ставка, скорее всего, снизится. Поэтому «заработано» по таким проектам — это предварительная оценка по текущей ставке, а не окончательные деньги. Окончательные цифры — только у закрытых проектов. Суммы за отдельные промежутки посчитаны по текущей ставке проекта. Теги проекта (#…) — например, имя клиента.\n\n`;
+  t += `Валюта: рубли. Рабочая сессия = время от старта до завершения, включая перерывы (во время перерыва общий таймер идёт, на паузе только задача; перерывы указаны отдельно). Работа над задачами = время, когда шёл таймер конкретной задачи. Ставка проекта = полная стоимость ÷ все часы работы над задачами проекта. «Заработано за период» = часы по задачам за период × ставка проекта. ВАЖНО: у незавершённых проектов (статус «в работе») ставка НЕ финальная — проект ещё не закрыт, часы будут добавляться, и итоговая ставка, скорее всего, снизится. Поэтому «заработано» по таким проектам — это предварительная оценка по текущей ставке, а не окончательные деньги. Окончательные цифры — только у закрытых проектов. Суммы за отдельные промежутки посчитаны по текущей ставке проекта. Теги проекта (#…) — например, имя клиента.\n\n`;
   t += `ИТОГО ЗА ПЕРИОД\n`;
-  t += `Рабочих сессий: ${D.ws.length}; время в рабочих сессиях без перерывов: ${hd(D.studio)} ч (${fh(D.studio)})\n`;
+  t += `Рабочих сессий: ${D.ws.length}; время в рабочих сессиях (вместе с перерывами): ${hd(D.studio)} ч (${fh(D.studio)})\n`;
   t += `Перерывы: ${D.nbr} шт., всего ${hd(D.breaks)} ч (${fh(D.breaks)})${D.nbr ? ', в среднем ' + fh(D.breaks / D.nbr) : ''}\n`;
   t += `Работа над задачами: ${hd(D.sec)} ч (${fh(D.sec)})${D.studio ? `; из них внутри сессий ${hd(D.inShift)} ч = ${pct(D.inShift, D.studio)}% времени сессий` : ''}\n`;
   const eFin = D.rows.filter(x => x.p.c && !x.np).reduce((a, x) => a + x.earned, 0), ePre = D.earned - eFin;
@@ -785,7 +793,7 @@ function reportText() {
     t += `\nРАБОЧИЕ СЕССИИ (сводка)\n`;
     D.ws.forEach(w => {
       const s2 = shiftInfo(w);
-      t += `- ${fdate(w.a)} ${ftime(w.a)}–${w.open ? 'идёт сейчас' : ftime(w.b)}: работа ${hm(s2.dur)} без перерывов, в задачах ${hm(s2.work)} (${pct(s2.work, s2.dur)}%), перерывы ${s2.nbr ? s2.nbr + ' шт. / ' + hm(s2.brk) : 'нет'}; задачи: ` +
+      t += `- ${fdate(w.a)} ${ftime(w.a)}–${w.open ? 'идёт сейчас' : ftime(w.b)}: сессия ${hm(s2.dur)} (вместе с перерывами), в задачах ${hm(s2.work)} (${pct(s2.work, s2.dur)}%), перерывы ${s2.nbr ? s2.nbr + ' шт. / ' + hm(s2.brk) : 'нет'}; задачи: ` +
         (s2.tasks.length ? s2.tasks.map(x => `${pname(x.t)} / ${tname(x.t)} ${hm(x.s)}${x.done ? ' (завершена)' : ''}`).join('; ') : 'нет') + '\n';
     });
   }
@@ -795,7 +803,7 @@ function reportText() {
     D.ws.forEach(w => {
       add(w.a, { a: w.a, o: 0, s: `▶ ${ftime(w.a)} начало рабочей сессии` });
       (w.k || []).forEach(k => add(w.a, { a: k[0], o: 1, s: `☕ ${ftime(k[0])}–${ftime(k[1])} перерыв (${hm(k[1] - k[0])})` }));
-      add(w.a, w.open ? { a: now(), o: 2, s: `… сессия идёт сейчас` } : { a: w.b, o: 2, s: `■ ${ftime(w.b)} конец рабочей сессии — работа ${hm(wWork(w))} без перерывов, в задачах ${hm(sum(shiftEs(w.id)))}` });
+      add(w.a, w.open ? { a: now(), o: 2, s: `… сессия идёт сейчас` } : { a: w.b, o: 2, s: `■ ${ftime(w.b)} конец рабочей сессии — сессия ${hm(wWork(w))} (вместе с перерывами), в задачах ${hm(sum(shiftEs(w.id)))}` });
     });
     D.es.forEach(e => {
       const p = proj(pidOf(e)), rt = p ? rate(p) : 0, d = e.b - e.a, m = rt * d / 3600;
@@ -832,14 +840,29 @@ async function makeReport() {
 
 /* ===== Экраны ===== */
 try { if (V('6.1')) { tg.setHeaderColor('#0a0a0c'); tg.setBackgroundColor('#0a0a0c'); } if (V('7.10')) tg.setBottomBarColor('#0a0a0c'); } catch {}
-const COLS = ['#c8f04a', '#8b7cff', '#4ad6f0', '#ff8a4a', '#ff6fb1', '#f0d24a', '#5cf0a8', '#b6b0ff'];
+const COLS = ['#4a8cff', '#8b7cff', '#4ad6f0', '#ff8a4a', '#ff6fb1', '#f0d24a', '#5cf0a8', '#b6b0ff'];
 const colorOf = pid => COLS[Math.max(0, P.findIndex(p => p.id === pid)) % COLS.length];
 const dot = (c, live) => `<span class="dot ${live ? 'live' : ''}" style="background:${c}"></span>`;
-function ring(p, size, sw) {
-  const r = (size - sw) / 2, c = 2 * Math.PI * r, m = size / 2;
-  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${m}" cy="${m}" r="${r}" fill="none" stroke="#1c1c21" stroke-width="${sw}"/>
-    <circle id="ringp" data-c="${c}" cx="${m}" cy="${m}" r="${r}" fill="none" stroke="#c8f04a" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - Math.min(1, p))}" stroke-opacity="${p > 0 ? 1 : 0}" transform="rotate(-90 ${m} ${m})" style="transition:stroke-dashoffset .8s"/></svg>`;
+// Кольцо сессии по хронологии: каждый отрезок работы — зелёная дуга, каждый перерыв — оранжевая, на своём месте во времени.
+// Круг целиком = вся сессия от старта до текущего момента.
+function ringSegs(c) {
+  if (!S) return '';
+  const tn = Date.now() / 1000, a0 = S.w.a, tot = Math.max(1, tn - a0), m = c.m, r = c.r, L = c.len;
+  const seg = (a, b, col) => {
+    const st = Math.max(0, (a - a0) / tot) * L, ln = Math.max(0, Math.min(L - st, (b - a) / tot * L));
+    return ln < .5 ? '' : `<circle cx="${m}" cy="${m}" r="${r}" fill="none" stroke="${col}" stroke-width="${c.sw}" stroke-dasharray="${ln} ${L}" stroke-dashoffset="${-st}" transform="rotate(-90 ${m} ${m})"/>`;
+  };
+  const brs = S.k.concat(S.br ? [[S.br, tn]] : []);
+  const es = E.filter(e => e.w === S.w.id).concat(S.t && S.r ? [{ a: S.r, b: tn }] : []);
+  return es.map(e => seg(e.a, e.b, '#4a8cff')).join('') + brs.map(k => seg(k[0], k[1], '#ffb648')).join('');
 }
+let ringGeo = null;
+function ring(size, sw) {
+  const r = (size - sw) / 2, m = size / 2; ringGeo = { r, m, sw, len: 2 * Math.PI * r };
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${m}" cy="${m}" r="${r}" fill="none" stroke="#1c1c21" stroke-width="${sw}"/><g id="rsegs">${ringSegs(ringGeo)}</g></svg>`;
+}
+function setRing() { const g = $('#rsegs'); if (g && ringGeo) g.innerHTML = ringSegs(ringGeo); }
+(function ringLoop() { if (S && !document.hidden) setRing(); requestAnimationFrame(ringLoop); })(); // плавно, каждый кадр
 const kpi = (l, v, sub) => `<div class="card kpi"><div class="lbl">${l}</div><div class="v">${v}</div>${sub ? `<div class="hint">${sub}</div>` : ''}</div>`;
 
 function shiftCard(w, editable) {
@@ -868,7 +891,7 @@ function shiftEditor(w) {
     (es.length ? es.map(e => `<div class="line"><span>${dot(colorOf(pidOf(e)))}${esc(tname(e.t))} <span class="hint">${esc(pname(e.t))}</span></span>
       <span class="inl"><input ${hmAttrs} value="${hm(e.b - e.a)}" style="width:78px;margin:0;padding:8px;text-align:right" class="num" onchange="setEntryMin('${e.id}',this.value)"><button class="x" onclick="delEntry('${e.id}')">✕</button></span></div>`).join('')
       : '<div class="hint" style="padding:6px 0">Пока ни одной задачи</div>') +
-    (work > wWork(w) ? `<div class="hint" style="color:var(--amb)">Время задач (${fh(work)}) больше времени сессии без перерывов (${fh(wWork(w))}) — проверь время начала, конца и перерывы.</div>` : '') +
+    (work + brSec(w) > wWork(w) ? `<div class="hint" style="color:var(--amb)">Время задач и перерывов (${fh(work + brSec(w))}) больше длительности сессии (${fh(wWork(w))}) — проверь время начала, конца и перерывы.</div>` : '') +
     `<div class="lbl" style="margin-top:12px">Перерывы</div>` +
     ((w.k || []).length ? w.k.map((k, i) => `<div class="line"><span><span style="color:var(--amb)">☕</span> <span class="hint num">${ftime(k[0])}</span></span>
       <span class="inl"><input ${hmAttrs} value="${hm(k[1] - k[0])}" style="width:78px;margin:0;padding:8px;text-align:right" class="num" onchange="setBreakMin('${w.id}',${i},this.value)"><button class="x" onclick="delBreak('${w.id}',${i})">✕</button></span></div>`).join('')
@@ -911,15 +934,15 @@ function viewHome() {
   let h = '';
   if (S) {
     const ws = shiftEs(S.w.id), work = sum(ws), dur = sessWork(), brk = sessBreaks();
-    h += `<div class="ringwrap">${ring(dur > 0 ? work / dur : 0, 256, 8)}<div class="in">
-      <div class="lbl" ${S.br ? 'style="color:var(--amb)"' : ''}>${S.br ? 'Сессия на паузе' : 'Сессия · с ' + ftime(S.w.a)}</div>
-      <div class="clock" id="wclock" ${S.br ? 'style="color:var(--mut)"' : ''}>${fd(dur)}</div>
+    h += `<div class="ringwrap">${ring(256, 8)}<div class="in">
+      <div class="lbl" ${S.br ? 'style="color:var(--amb)"' : ''}>${S.br ? '☕ Перерыв · сессия идёт' : 'Сессия · с ' + ftime(S.w.a)}</div>
+      <div class="clock" id="wclock">${fd(dur)}</div>
       <div class="hint num"><span id="wwork">${fh(work)}</span> · <span id="wpct" style="color:var(--acc)">${pct(work, dur)}%</span></div></div></div>
-      <div class="hint center" style="margin-bottom:10px">кольцо — доля сессии в задачах${brk ? ` · <span style="color:var(--amb);white-space:nowrap">☕ перерывы <span id="wbrk">${fh(brk)}</span></span>` : ''}</div>`;
+      <div class="hint center" style="margin-bottom:10px"><span style="white-space:nowrap"><i class="lg" style="background:var(--acc)"></i>задачи</span> · <span style="white-space:nowrap"><i class="lg" style="background:var(--amb)"></i>перерывы <span id="wbrk">${brk ? fh(brk) : ''}</span></span> · <span style="white-space:nowrap"><i class="lg" style="background:#2a2a31"></i>остальное</span></div>`;
     if (S.br) {
       h += `<div class="card center" style="border-color:rgba(255,182,72,.35)"><div class="lbl" style="color:var(--amb)">☕ Перерыв</div>
         <div class="clock" id="bclock" style="color:var(--amb);margin:10px 0 4px">${fd(now() - S.br)}</div>
-        <div class="hint">общий таймер${S.bt ? ' и задача' : ''} на паузе</div>
+        <div class="hint">${S.bt ? 'задача на паузе, ' : ''}рабочая сессия продолжается</div>
         <button class="btn" style="margin-top:16px" onclick="endBreak()">Вернуться к работе</button>
         ${S.bt ? `<div class="hint" style="margin-top:6px">продолжится: ${esc(tname(S.bt))}</div>` : ''}</div>`;
     } else {
@@ -1030,8 +1053,8 @@ const projTags = p => cats().filter(c => p.t && String(p.t[c.id] || '').trim()).
 const tagLabel = x => x.c ? `${x.c}: ${x.v}` : '#' + x.v;
 const tagsTxt = (p, sep = '; ') => projTags(p).map(tagLabel).join(sep);
 const catValues = id => [...new Set(P.map(p => p.t && p.t[id]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru'));
-const catLists = () => cats().map(c => `<datalist id="tl-${c.id}">${catValues(c.id).map(v => `<option value="${esc(v)}">`).join('')}</datalist>`).join('');
-const catFields = (pref, p) => cats().map(c => `<label class="tf"><span>${esc(c.n)}:</span><input id="${pref}${c.id}" list="tl-${c.id}" autocomplete="off" maxlength="60" value="${esc((p && p.t && p.t[c.id]) || '')}"${p ? ` onchange="setTag('${p.id}','${c.id}',this.value)"` : ''}></label>`).join('');
+const catLists = () => ''; // подсказки — своим списком (acOpen), datalist в Telegram на телефоне не работает
+const catFields = (pref, p) => cats().map(c => `<label class="tf"><span>${esc(c.n)}:</span><input id="${pref}${c.id}" data-ac="${c.id}" autocomplete="off" autocapitalize="sentences" maxlength="60" value="${esc((p && p.t && p.t[c.id]) || '')}"${p ? ` onchange="setTag('${p.id}','${c.id}',this.value)"` : ''}></label>`).join('');
 function setTag(pid, cid, v) { const p = proj(pid); p.t = p.t || {}; v = String(v).trim().slice(0, 60); if (v) p.t[cid] = v; else delete p.t[cid]; saveP(); render(); }
 function addCat() {
   const el = $('#nc'), n = el.value.trim().slice(0, 30); if (!n) return el.focus();
@@ -1069,7 +1092,7 @@ function openNewProj() {
 }
 function projPage(list, fid, top) {
   const rf = folder(fid), sub = rf ? ' в «' + esc(rf.n) + '»' : '';
-  let h = top ? `<div class="card" style="border-color:rgba(200,240,74,.35)"><div class="row" style="margin-bottom:8px"><span class="lbl">Новый проект${sub}</span><button class="x" onclick="newPOpen=false;render()" aria-label="Закрыть">✕</button></div>${projectForm(rf ? fid : '')}</div>` : '';
+  let h = top ? `<div class="card" style="border-color:rgba(74,140,255,.35)"><div class="row" style="margin-bottom:8px"><span class="lbl">Новый проект${sub}</span><button class="x" onclick="newPOpen=false;render()" aria-label="Закрыть">✕</button></div>${projectForm(rf ? fid : '')}</div>` : '';
   h += list.length ? list.map(p => projCard(p, !fid)).join('') : `<div class="hint center" style="padding:28px 0 12px">${fid ? 'В этой папке пока нет проектов' : 'Пока нет проектов'}${top ? '' : '<br>Нажми «+ Проект» вверху, чтобы создать'}</div>`;
   return h;
 }
@@ -1180,12 +1203,46 @@ function viewStats() {
 }
 setInterval(() => {
   if (!S) return;
-  const dur = sessWork(), work = sum(shiftEs(S.w.id)), el = $('#ringp');
-  if (el) { const c = +el.dataset.c; el.setAttribute('stroke-dashoffset', c * (1 - Math.min(1, dur > 0 ? work / dur : 0))); el.setAttribute('stroke-opacity', work > 0 ? 1 : 0); }
+  const dur = sessWork(), work = sum(shiftEs(S.w.id));
   const p = $('#wpct'); if (p) p.textContent = pct(work, dur) + '%';
 }, 1000);
 
+// ---- выпадающие подсказки для тегов: касание / мышь / стрелки ↓↑ + Enter, Esc — закрыть
+let acBox = null, acIdx = -1, acInp = null;
+function acClose() { if (acBox) acBox.remove(); acBox = null; acIdx = -1; acInp = null; }
+function acOpen(inp) {
+  const q = inp.value.trim().toLowerCase();
+  const list = catValues(inp.dataset.ac).filter(v => v.toLowerCase() !== q && (!q || v.toLowerCase().includes(q))).slice(0, 8);
+  acClose(); if (!list.length) return;
+  acInp = inp; acBox = document.createElement('div'); acBox.className = 'acbox'; acBox._vals = list;
+  acBox.innerHTML = list.map((v, i) => { const k = q ? v.toLowerCase().indexOf(q) : -1; return `<div class="aci" data-i="${i}">${k < 0 ? esc(v) : esc(v.slice(0, k)) + '<b>' + esc(v.slice(k, k + q.length)) + '</b>' + esc(v.slice(k + q.length))}</div>`; }).join('');
+  // pointerdown/mousedown — не отдаём фокус полю; выбор — по click, чтобы касание не «провалилось» на кнопку под списком
+  ['pointerdown', 'mousedown'].forEach(ev => acBox.addEventListener(ev, e => e.preventDefault()));
+  acBox.addEventListener('click', e => { const it = e.target.closest('.aci'); if (!it) return; e.preventDefault(); e.stopPropagation(); acPick(+it.dataset.i); });
+  document.body.appendChild(acBox); acPlace();
+}
+function acPlace() {
+  if (!acBox || !acInp) return;
+  const r = (acInp.closest('.tf') || acInp).getBoundingClientRect(), vh = (window.visualViewport && visualViewport.height) || innerHeight;
+  const below = vh - r.bottom, h = Math.min(acBox.scrollHeight, 220);
+  Object.assign(acBox.style, { left: r.left + 'px', width: r.width + 'px', top: (below >= h + 8 || below > r.top ? r.bottom + 4 : r.top - h - 4) + 'px' });
+}
+function acPick(i) { const inp = acInp, v = acBox && acBox._vals[i]; if (!inp || v == null) return; inp.value = v; acClose(); inp.dispatchEvent(new Event('change', { bubbles: true })); }
+function acHi(i) { const items = acBox.querySelectorAll('.aci'); acIdx = (i + items.length) % items.length; items.forEach((x, j) => x.classList.toggle('on', j === acIdx)); items[acIdx].scrollIntoView({ block: 'nearest' }); }
+document.addEventListener('input', e => { if (e.target.matches && e.target.matches('input[data-ac]')) acOpen(e.target); });
+document.addEventListener('focusin', e => { if (e.target.matches && e.target.matches('input[data-ac]')) acOpen(e.target); });
+document.addEventListener('focusout', e => { if (e.target === acInp) setTimeout(() => { if (document.activeElement !== acInp) acClose(); }, 150); });
+document.addEventListener('keydown', e => {
+  if (!acBox || e.target !== acInp) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); acHi(acIdx + 1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); acHi(acIdx - 1); }
+  else if (e.key === 'Enter' && acIdx >= 0) { e.preventDefault(); e.stopPropagation(); acPick(acIdx); }
+  else if (e.key === 'Escape') acClose();
+}, true);
+window.addEventListener('resize', acPlace); if (window.visualViewport) visualViewport.addEventListener('resize', acPlace);
+document.addEventListener('scroll', e => { if (e.target !== acBox) acPlace(); }, true);
 function render() {
+  acClose();
   ['home', 'proj', 'stat'].forEach(t => $('#n-' + t).classList.toggle('on', t === tab));
   const p = cur && proj(cur);
   $('#app').innerHTML = settings ? viewSettings() : gearBtn() + (tab === 'home' ? viewHome() : tab === 'stat' ? viewStats() : p ? viewProject(p) : viewProjects());
@@ -1201,7 +1258,7 @@ setInterval(() => {
   if (!S) return;
   const w = $('#wclock'); if (w) w.textContent = fd(sessWork());
   const bc = $('#bclock'); if (bc && S.br) bc.textContent = fd(now() - S.br);
-  const wb = $('#wbrk'); if (wb) wb.textContent = fh(sessBreaks());
+  const wb = $('#wbrk'); if (wb) { const bs = sessBreaks(); wb.textContent = bs ? fh(bs) : ''; }
   const k = $('#wwork'); if (k) k.textContent = fh(sum(shiftEs(S.w.id)));
   const t = $('#tclock'); if (t && S.t) t.textContent = fd(taskSec(S.t));
 }, 1000);
