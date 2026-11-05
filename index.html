@@ -130,6 +130,24 @@ details.cdet summary::before{content:none}
 details.cdet summary::after{content:'›';color:var(--dim);font-size:20px;line-height:1;transition:transform .2s}
 details.cdet[open] summary::after{transform:rotate(90deg)}
 details.cdet summary .dot{margin:0 10px 0 auto}
+.trow{position:relative;margin:6px 0;border-radius:14px;overflow:hidden;touch-action:pan-y}
+.tsw{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-weight:600;font-size:14px;opacity:0;background:var(--s2);border-radius:14px}
+.trow.sw-on .tsw{opacity:1}.tsw .l{color:var(--acc)}.tsw .r{color:var(--amb)}
+.tfg{position:relative;display:flex;align-items:center;gap:10px;padding:11px 10px 11px 12px;background:var(--s1);border:1px solid var(--line);border-radius:14px;transition:transform .22s ease}
+.trow.ed .tsw{display:none}
+.trow.ed .tfg{border-radius:14px 14px 0 0;border-bottom:0}
+.chk{width:24px;height:24px;border-radius:50%;border:2px solid var(--dim);background:none;flex:none;padding:0;color:#fff;font-size:13px;line-height:20px}
+.chk.on{background:var(--acc);border-color:var(--acc)}
+.tmain{flex:1;min-width:0;cursor:pointer}.ttl{word-break:break-word}.trow.dn .ttl{color:var(--mut);text-decoration:line-through}
+.tmeta{font-size:12px;color:var(--mut);margin-top:3px;display:flex;gap:6px 10px;flex-wrap:wrap;align-items:center}
+.due{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;background:var(--s2);color:var(--mut);white-space:nowrap;vertical-align:1px}
+.due.over{background:rgba(255,93,93,.14);color:var(--red)}.due.today{background:rgba(74,140,255,.16);color:var(--acc)}
+.star{border:0;background:none;color:var(--dim);font-size:19px;padding:4px 2px;line-height:1}.star.on{color:var(--amb)}
+.ted{position:relative;background:var(--s1);border:1px solid var(--line);border-top:0;border-radius:0 0 14px 14px;padding:4px 12px 12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chips button{border:1px solid var(--line);background:var(--s2);color:var(--tx);font:inherit;font-size:13px;padding:7px 11px;border-radius:10px}
+.chips button.on{background:var(--acc);color:var(--acc-tx);border-color:var(--acc)}
+.tgrp{margin:18px 0 2px 4px;display:flex;justify-content:space-between}
 .cdot{width:18px;height:18px;border-radius:50%;border:0;padding:0;vertical-align:-3px;margin-right:8px}
 .tag button{border:0;background:none;color:inherit;opacity:.7;font-size:11px;padding:0 0 0 4px}
 .lg{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:0}
@@ -164,6 +182,7 @@ nav button.on{color:var(--acc)}
 <div id="app"><p class="hint" style="margin-top:30px">Загрузка…</p></div>
 <nav>
   <button id="n-home" onclick="tab='home';cur=null;ren=null;settings=false;endAsk=false;resetAsk=false;render()"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2.5h6"/></svg>Работа</button>
+  <button id="n-todo" onclick="tab='todo';cur=null;ren=null;settings=false;endAsk=false;resetAsk=false;tEdit=null;render()"><svg viewBox="0 0 24 24"><path d="M4 6.5l1.8 1.8L9 5M4 12.5l1.8 1.8L9 11M4 18.5l1.8 1.8L9 17M12.5 7h7.5M12.5 13h7.5M12.5 19h7.5"/></svg>Задачи</button>
   <button id="n-proj" onclick="tab='proj';cur=null;ren=null;settings=false;endAsk=false;resetAsk=false;render()"><svg viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5z"/></svg>Проекты</button>
   <button id="n-stat" onclick="tab='stat';cur=null;ren=null;settings=false;endAsk=false;resetAsk=false;render()"><svg viewBox="0 0 24 24"><path d="M5 20v-8M12 20V4M19 20v-5"/></svg>Статистика</button>
 </nav>
@@ -277,7 +296,7 @@ async function load() {
     cache[k] = s;
     if (k.startsWith('P-')) d.forEach(r => P.push({ id: r[0], n: r[1], pr: r[2], c: r[3], cr: r[4], h: r[5] || [], f: r[6] || '', u: r[7] ? 1 : 0, g: Array.isArray(r[8]) ? r[8] : [], t: r[9] && typeof r[9] === 'object' ? r[9] : {}, pp: +r[10] || 0, wt: +r[11] || 0, cl: r[12] ?? -1, part: r.length > 13 ? (r[13] ? 1 : 0) : (+r[10] > 0 && +r[10] < +r[2] ? 1 : 0) }));
     else if (k.startsWith('F-')) d.forEach(r => F.push({ id: r[0], n: r[1], cr: r[2], cl: r[3] ?? -1 }));
-    else if (k.startsWith('T-')) d.forEach(r => T.push({ id: r[0], p: r[1], n: r[2], d: r[3] }));
+    else if (k.startsWith('T-')) d.forEach(r => T.push({ id: r[0], p: r[1] || '', n: r[2], d: r[3], dd: r[4] || '', st: r[5] ? 1 : 0, o: typeof r[6] === 'number' ? r[6] : null }));
     else if (k.startsWith('w-')) d.forEach(r => W.push({ id: r[0], a: r[1], b: r[2], k: r[3] || [] }));
     else d.forEach(r => E.push({ id: r[0], t: r[1], a: r[2], b: r[3], w: r[4] || null }));
   }
@@ -287,7 +306,7 @@ async function load() {
   if (fixColors()) saveP();
   if (fixCatColors()) saveO();
   if (F.some(f => !(f.cl >= 0))) { F.forEach((f, i) => { if (!(f.cl >= 0)) f.cl = i % 8; }); saveF(); }
-  T.sort((x, y) => x.id < y.id ? -1 : 1);
+  if (fixOrder()) saveT();
 }
 
 // Запись коллекции кусками до ~3500 символов (лимит Telegram — 4096 на ключ); неизменённые куски не перезаписываются
@@ -311,7 +330,7 @@ const DEF_OPT = () => ({ hideAll: false, hideDone: false, noWait: false, full: t
 let opt = DEF_OPT();
 const saveO = () => persist(() => store.set('O', JSON.stringify(opt)));
 const saveF = () => persist(() => saveChunks('F-', F.map(f => [f.id, f.n, f.cr, f.cl ?? -1])));
-const saveT = () => persist(() => saveChunks('T-', T.map(t => [t.id, t.p, t.n, t.d])));
+const saveT = () => persist(() => saveChunks('T-', T.map(t => [t.id, t.p, t.n, t.d, t.dd || '', t.st ? 1 : 0, t.o ?? 0])));
 const saveM = ym => persist(() => saveChunks('e-' + ym + '-', E.filter(e => ymOf(e.a) === ym).sort((x, y) => x.a - y.a).map(e => [e.id, e.t, e.a, e.b, e.w])));
 const saveW = ym => persist(() => saveChunks('w-' + ym + '-', W.filter(w => ymOf(w.a) === ym).sort((x, y) => x.a - y.a).map(w => [w.id, w.a, w.b, w.k || []])));
 const saveS = () => persist(() => S ? store.set('S', JSON.stringify(S)) : store.del(['S']));
@@ -320,7 +339,7 @@ const saveS = () => persist(() => S ? store.set('S', JSON.stringify(S)) : store.
 const task = id => T.find(t => t.id === id);
 const proj = id => P.find(p => p.id === id);
 const tname = id => (task(id) || { n: '?' }).n;
-const pname = tid => (proj((task(tid) || {}).p) || { n: '?' }).n;
+const pname = tid => (proj((task(tid) || {}).p) || { n: 'Без проекта' }).n;
 const pidOf = e => (task(e.t) || {}).p;
 const allE = () => S && S.t && S.r ? E.concat([{ t: S.t, a: S.r, b: now(), w: S.w.id }]) : E;
 const allW = () => S ? W.concat([{ id: S.w.id, a: S.w.a, b: now(), open: true, k: S.k.concat(S.br ? [[S.br, now()]] : []) }]) : W;
@@ -341,8 +360,13 @@ function addEntry(t, a, b, w) { if (b - a < 1) return; /* отрезки от 1 
 function closeInterval() { if (S && S.t && S.r) { addEntry(S.t, S.r, now(), S.w.id); S.r = null; } }
 const newS = () => ({ w: { id: uid(), a: now() }, t: null, r: null, k: [], br: null, bt: null });
 function startShift() { S = newS(); ended = null; buzz(); saveS(); render(); }
-function go(tid) {
-  if (!S) S = newS();
+async function go(tid) {
+  if (!S) {
+    const t = task(tid);
+    if (!(await modal(`Начать рабочую сессию?${t ? `\nИ сразу задачу «${t.n}».` : ''}`, [{ t: 'Нет', v: false }, { t: 'Да', v: true }]))) return;
+    if (S) return go(tid);
+    S = newS();
+  }
   if (S.br) stopBreak(false);
   closeInterval(); S.t = tid; S.r = now(); ended = null;
   tab = 'home'; cur = null; buzz(); saveS(); render();
@@ -376,6 +400,132 @@ function endShift() {
 }
 function releaseIfIn(pred) { if (S && S.t && pred(S.t)) { closeInterval(); S.t = null; saveS(); } }
 
+// порядок задач: у старых — по времени создания; T всегда отсортирован по o
+function fixOrder() { let ch = false; T.sort((x, y) => (x.o ?? Infinity) - (y.o ?? Infinity) || (x.id < y.id ? -1 : 1)); T.forEach((t, i) => { if (t.o !== i) { t.o = i; ch = true; } }); return ch; }
+const nextO = () => T.reduce((m, t) => Math.max(m, t.o ?? 0), -1) + 1;
+function moveTask(id, dir) {
+  const t = task(id), list = T.filter(x => x.p === t.p).sort((a, b) => (!!a.d - !!b.d) || a.o - b.o), i = list.indexOf(t), j = i + dir;
+  if (j < 0 || j >= list.length || !!list[j].d !== !!t.d) return;
+  [list[i].o, list[j].o] = [list[j].o, list[i].o]; T.sort((x, y) => x.o - y.o); saveT(); render();
+}
+let ordP = null; // проект, в котором включён режим «порядок»
+/* ===== Задачи (таск-менеджер): дела без проекта + задачи всех проектов ===== */
+let tEdit = null, tfMode = 'all';
+const isoOf = t => new Date(t * 1000).toLocaleDateString('sv');
+const isoAdd = n => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + n); return d.toLocaleDateString('sv'); };
+const dayDiff = iso => Math.round((new Date(iso + 'T12:00:00') - new Date(isoAdd(0) + 'T12:00:00')) / 864e5);
+const nDays = n => n % 10 === 1 && n % 100 !== 11 ? 'день' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'дня' : 'дней';
+function dueLabel(iso) {
+  const k = dayDiff(iso), d = new Date(iso + 'T12:00:00');
+  if (k === -1) return 'вчера'; if (k < 0) return -k + ' ' + nDays(-k) + ' назад';
+  if (k === 0) return 'сегодня'; if (k === 1) return 'завтра';
+  if (k < 7) return d.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' });
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+}
+const dueChip = iso => { const k = dayDiff(iso); return `<span class="due ${k < 0 ? 'over' : k === 0 ? 'today' : ''}">🕓 ${dueLabel(iso)}</span>`; };
+// какие задачи видны в списке: дела без проекта + задачи открытых проектов (не в ожидании)
+const todoVisible = t => t.p === '' || (proj(t.p) && !proj(t.p).c && !isW(proj(t.p)));
+let rankMap = null;
+function todoRank(t) {
+  if (!rankMap) { rankMap = new Map(); const by = {}; T.filter(x => !x.d).forEach(x => (by[x.p] = by[x.p] || []).push(x)); Object.values(by).forEach(a => a.forEach((x, i) => rankMap.set(x.id, i))); setTimeout(() => rankMap = null); }
+  return rankMap.get(t.id) ?? 0;
+}
+const pOrd = t => { const p = proj(t.p); return p ? -p.cr : -Infinity; }; // при равном номере: дела без проекта, затем свежие проекты
+const todoSort = (a, b) => (b.st || 0) - (a.st || 0) || (a.dd || '9').localeCompare(b.dd || '9') || todoRank(a) - todoRank(b) || pOrd(a) - pOrd(b) || a.o - b.o;
+function todoRow(t, opts = {}) {
+  const p = proj(t.p), ed = tEdit === t.id && !opts.mini, run = S && S.t === t.id;
+  let h = `<div class="trow ${t.d ? 'dn' : ''} ${ed ? 'ed' : ''}" data-id="${t.id}"><div class="tsw"><span class="l">✓ Готово</span><span class="r">Завтра →</span></div>
+    <div class="tfg"><button class="chk ${t.d ? 'on' : ''}" onclick="todoDone('${t.id}')" aria-label="Готово">${t.d ? '✓' : ''}</button>
+    <div class="tmain" onclick="tEdit=tEdit==='${t.id}'?null:'${t.id}';${opts.mini ? "tab='todo';" : ''}render()"><div class="ttl">${esc(t.n)}</div>
+      ${p || t.dd ? `<div class="tmeta">${p ? `<span>${dot(colorOf(p.id))}${esc(p.n)}</span>` : ''}${t.dd && !t.d ? dueChip(t.dd) : ''}</div>` : ''}
+      ${p && projTags(p).length ? `<div class="tags" style="margin-top:5px">${projTags(p).map(x => `<span class="tag" ${tagStyle(x.col)}>${esc(tagLabel(x))}</span>`).join('')}</div>` : ''}</div>
+    ${t.d ? '' : `<button class="star ${t.st ? 'on' : ''}" onclick="todoStar('${t.id}')" aria-label="Важное">${t.st ? '★' : '☆'}</button>
+    <button class="ib play" style="margin-left:2px" onclick="go('${t.id}')">${run ? '●' : '▶'}</button>`}</div>`;
+  if (ed) {
+    const k = t.dd ? dayDiff(t.dd) : null;
+    h += `<div class="ted"><input value="${esc(t.n)}" maxlength="100" onchange="todoRename('${t.id}',this.value)" style="margin-top:8px">
+      <div class="lbl" style="margin:6px 0 0 2px">Срок</div>
+      <div class="chips"><button class="${k === 0 ? 'on' : ''}" onclick="todoDue('${t.id}',isoAdd(0))">Сегодня</button><button class="${k === 1 ? 'on' : ''}" onclick="todoDue('${t.id}',isoAdd(1))">Завтра</button><button onclick="todoDue('${t.id}',isoAdd(7))">Через неделю</button>${t.dd ? `<button onclick="todoDue('${t.id}','')">Без срока</button>` : ''}</div>
+      <input type="date" value="${t.dd || ''}" onchange="todoDue('${t.id}',this.value)">
+      ${p ? `<button class="btn alt" onclick="cur='${p.id}';tab='proj';tEdit=null;render()">Открыть проект «${esc(p.n)}»</button>`
+        : P.some(x => !x.c) ? `<div class="lbl" style="margin:6px 0 0 2px">Перенести в проект</div><select onchange="todoMove('${t.id}',this.value)"><option value="">— выбери проект —</option>${P.filter(x => !x.c).sort((a, b) => b.cr - a.cr).map(x => `<option value="${x.id}">${esc(x.n)}${folder(x.f) ? ' · ' + esc(folder(x.f).n) : ''}</option>`).join('')}</select>` : ''}
+      <button class="btn del" onclick="delTask('${t.id}')">Удалить задачу</button></div>`;
+  }
+  return h + '</div>';
+}
+function todoGroups(list) {
+  const g = { over: [], today: [], tom: [], later: [], none: [] };
+  list.forEach(t => { if (!t.dd) return g.none.push(t); const k = dayDiff(t.dd); g[k < 0 ? 'over' : k === 0 ? 'today' : k === 1 ? 'tom' : 'later'].push(t); });
+  Object.values(g).forEach(a => a.sort(todoSort)); return g;
+}
+function viewTodo() {
+  const all = T.filter(t => todoVisible(t) && (tfMode === 'all' || (tfMode === 'own' ? t.p === '' : t.p !== '')));
+  const open = all.filter(t => !t.d), g = todoGroups(open);
+  let h = `<h2>Задачи</h2>
+    <div class="inl"><input id="nt-todo" placeholder="Новое дело" maxlength="100" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();newTodo(true)}"><button class="btn sm" onpointerdown="event.preventDefault()" onclick="newTodo()">+</button></div>
+    <div class="seg" style="margin-top:6px">${[['all', 'Все'], ['own', 'Без проекта'], ['proj', 'Из проектов']].map(([m, n]) => `<button class="${tfMode === m ? 'on' : ''}" onclick="tfMode='${m}';tEdit=null;render()">${n}</button>`).join('')}</div>`;
+  const sec = (key, title, color) => g[key].length ? `<div class="tgrp"><span class="lbl" ${color ? `style="color:${color}"` : ''}>${title}</span><span class="hint num">${g[key].length}</span></div>` + g[key].map(t => todoRow(t)).join('') : '';
+  h += sec('over', 'Просрочено', 'var(--red)') + sec('today', 'Сегодня', 'var(--acc)') + sec('tom', 'Завтра') + sec('later', 'Скоро') + sec('none', 'Без срока');
+  if (!open.length) h += `<div class="hint center" style="padding:30px 0 10px">${all.length ? 'Всё сделано 🎉' : 'Задач пока нет.<br>Впиши дело в поле сверху.'}</div>`;
+  const done = all.filter(t => t.d && t.d > now() - 14 * 86400).sort((a, b) => b.d - a.d);
+  if (done.length) h += `<details class="sw" style="margin-top:14px"><summary>Выполнено за 2 недели (${done.length})</summary>${done.map(t => todoRow(t)).join('')}</details>`;
+  if (open.length) h += `<div class="hint center" style="margin:14px 0 4px">Свайп вправо — готово, влево — на завтра</div>`;
+  return h;
+}
+function todayCard() {
+  const list = T.filter(t => !t.d && t.dd && dayDiff(t.dd) <= 0 && todoVisible(t)).sort((a, b) => todoSort(a, b));
+  const done = T.filter(t => t.d && t.d >= dayStart(now()) && todoVisible(t) && (t.dd || t.p === '')).sort((a, b) => b.d - a.d);
+  if (!list.length && !done.length) return '';
+  return `<div class="row" style="margin:22px 4px 4px"><span class="lbl">На сегодня</span><button class="link" style="margin:0;padding:0" onclick="tab='todo';render()">все задачи ›</button></div>` +
+    list.slice(0, 6).map(t => todoRow(t)).join('') + (list.length > 6 ? `<div class="hint center" style="margin:6px 0">и ещё ${list.length - 6}</div>` : '') +
+    (!list.length ? '<div class="hint center" style="padding:10px 0">На сегодня всё сделано 🎉</div>' : '') +
+    (done.length ? `<div class="tgrp"><span class="lbl">Выполнено сегодня</span><span class="hint num">${done.length}</span></div>` + done.map(t => todoRow(t)).join('') : '');
+}
+function inboxPick() {
+  const list = T.filter(t => t.p === '' && !t.d && !(S && S.t === t.id)).sort((a, b) => (a.dd ? dayDiff(a.dd) : 1e9) - (b.dd ? dayDiff(b.dd) : 1e9) || todoSort(a, b));
+  if (!list.length) return '';
+  return `<div class="card"><div class="row" style="margin-bottom:6px"><span>${dot('#7f8aa3')}<b>Дела без проекта</b></span></div>` +
+    list.slice(0, 8).map(t => `<button class="item" onclick="go('${t.id}')"><span>${esc(t.n)}${t.dd ? ' ' + dueChip(t.dd) : ''}</span><span class="hint num">${fh(taskSec(t.id))} <span style="color:var(--acc);margin-left:6px">▶</span></span></button>`).join('') + '</div>';
+}
+function newTodo(done) {
+  const el = $('#nt-todo'), n = el.value.trim(); if (!n) return done ? el.blur() : el.focus();
+  T.push({ id: uid(), p: '', n: n.slice(0, 100), d: 0, dd: '', st: 0, o: nextO() }); saveT();
+  if (tfMode === 'proj') tfMode = 'all';
+  if (done) { el.blur(); render(); return; }
+  render(); const e2 = $('#nt-todo'); if (e2) e2.focus();
+}
+function todoDone(id) {
+  const t = task(id); if (!t) return; t.d = t.d ? 0 : now();
+  if (t.d) releaseIfIn(x => x === id);
+  if (tEdit === id) tEdit = null;
+  saveT(); render(); if (t.d) { buzz(); askCloseIfDone(t.p); }
+}
+function todoStar(id) { const t = task(id); t.st = t.st ? 0 : 1; saveT(); render(); }
+function todoDue(id, v) { const t = task(id); t.dd = v || ''; saveT(); render(); }
+function todoRename(id, v) { const t = task(id), n = String(v).trim().slice(0, 100); if (n) { t.n = n; saveT(); } render(); }
+function todoMove(id, pid) { if (!pid) return; const t = task(id), p = proj(pid); t.p = pid; tEdit = null; saveT(); render(); toast(`«${t.n}» теперь в проекте «${p.n}»`); }
+// свайпы по задаче: вправо — готово, влево — перенести на завтра
+(function () {
+  let row = null, fg = null, x0 = 0, y0 = 0, dx = 0, lock = null;
+  document.addEventListener('touchstart', e => {
+    row = e.target.closest('.trow'); if (!row || row.classList.contains('ed') || e.target.closest('input,select,.ted')) { row = null; return; }
+    fg = row.querySelector('.tfg'); const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; dx = 0; lock = null;
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!row) return; const t = e.touches[0], mx = t.clientX - x0, my = t.clientY - y0;
+    if (!lock) { if (Math.abs(mx) < 8 && Math.abs(my) < 8) return; lock = Math.abs(mx) > Math.abs(my) * 1.2 ? 'x' : 'y'; if (lock === 'x') { fg.style.transition = 'none'; row.classList.add('sw-on'); } }
+    if (lock !== 'x') return; e.preventDefault();
+    dx = row.classList.contains('dn') && mx < 0 ? mx / 4 : mx; fg.style.transform = `translateX(${dx}px)`;
+  }, { passive: false });
+  document.addEventListener('touchend', () => {
+    if (!row || lock !== 'x') { row = null; return; }
+    const id = row.dataset.id, r = row, f = fg; f.style.transition = ''; row = null;
+    if (dx > 80) { f.style.transform = 'translateX(110%)'; setTimeout(() => todoDone(id), 180); }
+    else if (dx < -80 && !r.classList.contains('dn')) { f.style.transform = 'translateX(-110%)'; setTimeout(() => todoDue(id, isoAdd(1)), 180); }
+    else { f.style.transform = ''; setTimeout(() => r.classList.remove('sw-on'), 220); }
+  });
+})();
+
 /* ===== Проекты, задачи, переименование ===== */
 function newProject(fid = '') {
   const k = fid || 'x', n = $('#np-n-' + k).value.trim(), pr = num($('#np-p-' + k).value), fs = $('#np-f-' + k);
@@ -393,7 +543,7 @@ function newTask(pid, andGo, src, done) {
   const el = src ? (src.tagName === 'INPUT' ? src : src.parentNode.querySelector('input')) : $('#nt-' + pid), n = el.value.trim();
   if (done && !n) return el.blur(); // Enter в пустом поле — просто убрать клавиатуру
   if (!n) return el.focus();
-  const t = { id: uid(), p: pid, n, d: 0 }; T.push(t); saveT();
+  const t = { id: uid(), p: pid, n, d: 0, o: nextO() }; T.push(t); saveT();
   if (andGo) return go(t.id);
   if (done) { el.blur(); render(); return; } // Enter — сохранить задачу и закрыть клавиатуру
   render();
@@ -479,7 +629,7 @@ function initSwipe() {
     pg = $('#pager'); tr = !settings && pg && pg.offsetParent && ((tab === 'proj' && !cur) || tab === 'home') ? pg.firstElementChild : null;
     el = !settings && tab === 'stat' && !statAnim ? $('#swp') : null;
     mode = tr ? 'p' : el ? 's' : null;
-    if (!mode || e.touches.length > 1 || e.target.closest('.ftabs,textarea,input,select')) { lock = 'n'; return; }
+    if (!mode || e.touches.length > 1 || e.target.closest('.ftabs,textarea,input,select,.trow')) { lock = 'n'; return; }
     const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; t0 = Date.now();
   }, { passive: true });
   app.addEventListener('touchmove', e => {
@@ -645,7 +795,7 @@ async function delShift(id) {
 let lastBk = 0, bkText = null, bkRestore = false;
 function backupData() {
   return JSON.stringify({ app: 'studio-timer', v: 1, at: now(),
-    F: F.map(f => [f.id, f.n, f.cr, f.cl ?? -1]), P: P.map(p => [p.id, p.n, p.pr, p.c, p.cr, p.h, p.f || '', p.u ? 1 : 0, p.g || [], p.t || {}, p.pp || 0, p.wt || 0, p.cl ?? -1, p.part ? 1 : 0]), T: T.map(t => [t.id, t.p, t.n, t.d]),
+    F: F.map(f => [f.id, f.n, f.cr, f.cl ?? -1]), P: P.map(p => [p.id, p.n, p.pr, p.c, p.cr, p.h, p.f || '', p.u ? 1 : 0, p.g || [], p.t || {}, p.pp || 0, p.wt || 0, p.cl ?? -1, p.part ? 1 : 0]), T: T.map(t => [t.id, t.p, t.n, t.d, t.dd || '', t.st ? 1 : 0, t.o ?? 0]),
     E: E.map(e => [e.id, e.t, e.a, e.b, e.w]), W: W.map(w => [w.id, w.a, w.b, w.k || []]), O: opt, S });
 }
 async function backup() {
@@ -670,7 +820,7 @@ async function restore() {
   F = (d.F || []).map(r => ({ id: r[0], n: r[1], cr: r[2], cl: r[3] ?? -1 })); F.forEach((f, i) => { if (!(f.cl >= 0)) f.cl = i % 8; });
   const keep = { autoBk: opt.autoBk };
   opt = Object.assign(DEF_OPT(), keep, d.O || {}); setFull(opt.full !== false);
-  T = d.T.map(r => ({ id: r[0], p: r[1], n: r[2], d: r[3] }));
+  T = d.T.map(r => ({ id: r[0], p: r[1] || '', n: r[2], d: r[3], dd: r[4] || '', st: r[5] ? 1 : 0, o: typeof r[6] === 'number' ? r[6] : null }));
   E = d.E.map(r => ({ id: r[0], t: r[1], a: r[2], b: r[3], w: r[4] || null }));
   W = (d.W || []).map(r => ({ id: r[0], a: r[1], b: r[2], k: r[3] || [] }));
   if (S) { S.k = S.k || []; S.br = S.br || null; S.bt = S.bt || null; }
@@ -680,7 +830,7 @@ async function restore() {
     for (let i = 0; i < keys.length; i += 40) await store.del(keys.slice(i, i + 40));
     Object.keys(cache).forEach(k => delete cache[k]);
   });
-  P.sort((x, y) => x.cr - y.cr); fixColors(); fixCatColors();
+  P.sort((x, y) => x.cr - y.cr); fixColors(); fixCatColors(); fixOrder();
   saveP(); saveT(); saveF(); saveO(); fIdx = 0;
   new Set(E.map(e => ymOf(e.a))).forEach(saveM);
   new Set(W.map(w => ymOf(w.a))).forEach(saveW);
@@ -779,18 +929,18 @@ function range() {
   return { a: a.getTime() / 1000, b: b.getTime() / 1000, last: last.getTime() / 1000, label };
 }
 function periodData() {
-  const r = range(), es = allE().filter(e => e.a >= r.a && e.a < r.b), by = {};
+  const r = range(), es = allE().filter(e => e.a >= r.a && e.a < r.b), by = {}; let ibSec = 0;
   for (const e of es) {
-    const pid = pidOf(e); if (!pid || !proj(pid)) continue;
+    const pid = pidOf(e); if (!pid || !proj(pid)) { if (task(e.t)) ibSec += e.b - e.a; continue; }
     const x = by[pid] = by[pid] || { sec: 0, tasks: {} };
     x.sec += e.b - e.a; x.tasks[e.t] = (x.tasks[e.t] || 0) + e.b - e.a;
   }
   const rows = Object.keys(by).map(pid => { const p = proj(pid), cnt = !!p.c && !p.u, rt = cnt ? rate(p) : 0; return { p, np: !!p.u, open: !p.c, cnt, sec: by[pid].sec, tasks: by[pid].tasks, rt, earned: rt * by[pid].sec / 3600 }; }).sort((x, y) => y.sec - x.sec);
   const sumBy = f => rows.filter(f).reduce((a, x) => a + x.sec, 0), cSec = sumBy(x => x.cnt), openSec = sumBy(x => x.open), npSec = sumBy(x => !x.open && x.np);
-  const sec = rows.reduce((x, y) => x + y.sec, 0), earned = rows.reduce((x, y) => x + y.earned, 0);
+  const sec = rows.reduce((x, y) => x + y.sec, 0) + ibSec, earned = rows.reduce((x, y) => x + y.earned, 0);
   const ws = allW().filter(w => w.a >= r.a && w.a < r.b).sort((x, y) => x.a - y.a);
   const studio = ws.reduce((x, w) => x + wWork(w), 0), breaks = ws.reduce((x, w) => x + brSec(w), 0), nbr = ws.reduce((x, w) => x + (w.k || []).length, 0), wids = new Set(ws.map(w => w.id)), inShift = sum(es.filter(e => wids.has(e.w)));
-  return { r, es, rows, sec, earned, npSec, cSec, openSec, avg: cSec > 0 ? earned / (cSec / 3600) : 0, ws, studio, breaks, nbr, inShift,
+  return { r, es, rows, sec, earned, npSec, cSec, openSec, ibSec, avg: cSec > 0 ? earned / (cSec / 3600) : 0, ws, studio, breaks, nbr, inShift,
     closed: P.filter(p => p.c >= r.a && p.c < r.b), byRate: rows.filter(x => x.cnt && x.rt > 0).slice().sort((x, y) => y.rt - x.rt) };
 }
 function shiftInfo(w) {
@@ -809,6 +959,7 @@ function reportText() {
   t += `Работа над задачами: ${hd(D.sec)} ч (${fh(D.sec)})${D.studio ? `; из них внутри сессий ${hd(D.inShift)} ч = ${pct(D.inShift, D.studio)}% времени сессий` : ''}\n`;
   t += `Заработано (только закрытые проекты): ${money(D.earned)}\n`;
   t += `Средняя ставка по закрытым проектам: ${D.cSec ? money(D.avg) + '/ч (по ' + hd(D.cSec) + ' ч работы)' : '— (в периоде нет работы по закрытым проектам)'}\n`;
+  if (D.ibSec) t += `Время на дела без проекта (в заработок не входит): ${hd(D.ibSec)} ч (${fh(D.ibSec)})\n`;
   if (D.openSec) t += `Время в незакрытых проектах (в заработок и ставку не входит, посчитается после закрытия): ${hd(D.openSec)} ч (${fh(D.openSec)})\n`;
   if (D.npSec) t += `Время в закрытых проектах без указанной цены (не учтено): ${hd(D.npSec)} ч (${fh(D.npSec)})\n`;
   if (D.studio) t += `Заработано в пересчёте на час рабочих сессий: ${money(D.earned / (D.studio / 3600))}/ч\n`;
@@ -873,7 +1024,7 @@ function reportText() {
     });
     D.es.forEach(e => {
       const p = proj(pidOf(e)), ok = p && p.c && !p.u, rt = ok ? rate(p) : 0, d = e.b - e.a, m = rt * d / 3600;
-      add(e.a, { a: e.a, o: 1, sec: d, m, s: `${ftime(e.a)}–${ftime(e.b)} (${hm(d)}) ${p ? fname(p) + ' / ' + p.n : '?'} / ${tname(e.t)} — ${!p || !p.c ? 'проект не закрыт' : p.u ? 'цена не указана' : money(rt) + '/ч → ' + money(m)}${e.w ? '' : ' [добавлено вручную, время начала условное]'}` });
+      add(e.a, { a: e.a, o: 1, sec: d, m, s: `${ftime(e.a)}–${ftime(e.b)} (${hm(d)}) ${p ? fname(p) + ' / ' + p.n : 'без проекта'} / ${tname(e.t)} — ${!p ? 'дело без проекта, без денег' : !p.c ? 'проект не закрыт' : p.u ? 'цена не указана' : money(rt) + '/ч → ' + money(m)}${e.w ? '' : ' [добавлено вручную, время начала условное]'}` });
     });
     let runSec = 0, runM = 0;
     Object.keys(days).sort((x, y) => x - y).forEach(d => {
@@ -887,7 +1038,7 @@ function reportText() {
     t += `\nВСЕ ЗАПИСИ ТАБЛИЦЕЙ (CSV, разделитель «;»)\nдата;начало;конец;минут;папка;проект;теги;задача;ставка_руб_в_час;статус_проекта;сумма_руб;источник\n`;
     D.es.slice().sort((x, y) => x.a - y.a).forEach(e => {
       const p = proj(pidOf(e)), ok = p && p.c && !p.u, rt = ok ? rate(p) : 0, d = e.b - e.a;
-      t += [fdate(e.a), ftime(e.a), ftime(e.b), Math.round(d / 60), p ? fname(p) : '', p ? p.n : '', p ? tagsTxt(p, ' | ') : '', tname(e.t), ok ? Math.round(rt) : '', !p || !p.c ? 'не закрыт' : p.u ? 'нет цены' : 'итоговая', ok ? Math.round(rt * d / 3600) : '', e.w ? 'сессия' : 'вручную']
+      t += [fdate(e.a), ftime(e.a), ftime(e.b), Math.round(d / 60), p ? fname(p) : '', p ? p.n : '', p ? tagsTxt(p, ' | ') : '', tname(e.t), ok ? Math.round(rt) : '', !p ? 'без проекта' : !p.c ? 'не закрыт' : p.u ? 'нет цены' : 'итоговая', ok ? Math.round(rt * d / 3600) : '', e.w ? 'сессия' : 'вручную']
         .map(v => String(v).replace(/;/g, ',')).join(';') + '\n';
     });
   }
@@ -995,7 +1146,8 @@ function pickProject(p) {
     ts.map(t => `<button class="item" onclick="go('${t.id}')"><span>${esc(t.n)}</span><span class="hint num">${fh(taskSec(t.id))} <span style="color:var(--acc);margin-left:6px">▶</span></span></button>`).join('') +
     `<div class="inl" style="margin-top:4px"><input id="nt-${p.id}" placeholder="Новая задача" maxlength="100" onkeydown="if(event.key==='Enter')newTask('${p.id}',true,this)"><button class="btn sm" onclick="newTask('${p.id}',true,this)">▶</button></div></div>`;
 }
-function pickerHTML() {
+function pickerHTML() { return inboxPick() + pickerProj(); }
+function pickerProj() {
   const act = P.filter(p => !p.c).sort((x, y) => y.cr - x.cr);
   if (!act.length) return `<div class="card"><h3>Создай первый проект</h3>${projectForm()}</div>`;
   const list = t => act.filter(p => inTab(p, t.id));
@@ -1034,20 +1186,20 @@ function viewHome() {
     } else {
       h += `<button class="btn warn" onclick="takeBreak()">☕ Перерыв</button>`;
     }
-    if (S.br) {} else if (S.t) {
+    let sc = ''; const byT = {}; ws.forEach(e => byT[e.t] = (byT[e.t] || 0) + e.b - e.a);
+    if (Object.keys(byT).length) sc = `<div class="card"><div class="lbl" style="margin-bottom:6px">В этой сессии</div>` + Object.entries(byT).sort((x, y) => y[1] - x[1]).map(([t, s]) => { const tk = task(t); const dn = tk && tk.d && tk.d >= S.w.a; return `<div class="line"><span ${dn ? 'style="color:var(--mut);text-decoration:line-through"' : ''}>${dot(colorOf((tk || {}).p))}${esc(tname(t))}${dn ? ' <span class="top">✓</span>' : ''}</span><span class="num hint" style="white-space:nowrap">${fh(s)}${dn ? ` <button class="ib" style="padding:4px 9px" onclick="todoDone('${t}')" aria-label="Вернуть в работу">↺</button>` : ''}</span></div>`; }).join('') + '</div>';
+    if (S.br) { h += sc; } else if (S.t) {
       const pid = (task(S.t) || {}).p;
       h += `<div class="card"><div class="row"><span class="lbl">${dot(S.r ? colorOf(pid) : 'var(--amb)', !!S.r)}${S.r ? 'в работе' : 'пауза'}</span><span class="hint">${esc(pname(S.t))}</span></div>
         <div style="font-size:19px;font-weight:600;margin:10px 0 2px">${esc(tname(S.t))}</div>
         <div class="clock" style="font-size:34px;margin-bottom:14px;${S.r ? '' : 'color:var(--mut)'}" id="tclock">${fd(taskSec(S.t))}</div>
         <div class="two">${S.r ? `<button class="btn warn" onclick="pauseTask()">Пауза</button>` : `<button class="btn alt" onclick="resumeTask()">Продолжить</button>`}
         <button class="btn ok" onclick="doneTask()">Готово ✓</button></div>
-        <button class="btn alt" onclick="releaseTask()">Отложить — продолжу потом</button></div>
+        <button class="btn alt" onclick="releaseTask()">Отложить — продолжу потом</button></div>${sc}
         <details class="sw"><summary>Переключиться на другую задачу</summary>${pickerHTML()}</details>`;
     } else {
-      h += `<h2>Над чем работаем?</h2>${pickerHTML()}`;
+      h += sc + `<h2>Над чем работаем?</h2>${pickerHTML()}`;
     }
-    const byT = {}; ws.forEach(e => byT[e.t] = (byT[e.t] || 0) + e.b - e.a);
-    if (Object.keys(byT).length) h += `<div class="card"><div class="lbl" style="margin-bottom:6px">В этой сессии</div>` + Object.entries(byT).sort((x, y) => y[1] - x[1]).map(([t, s]) => { const tk = task(t); return `<div class="line"><span>${dot(colorOf((tk || {}).p))}${esc(tname(t))}${tk && tk.d && tk.d >= S.w.a ? ' <span class="top">✓</span>' : ''}</span><span class="num hint">${fh(s)}</span></div>`; }).join('') + '</div>';
     h += endAsk ? `<div class="card" id="endc" style="border-color:rgba(255,93,93,.35);margin-top:8px"><div style="font-weight:600;margin-bottom:4px">Завершить рабочую сессию?</div>
       <div class="hint" style="margin-bottom:10px">Общий таймер остановится${S.t && S.r ? ', таймер задачи тоже' : ''}.</div>
       <div class="two"><button class="btn alt" onclick="endAsk=false;render()">Отмена</button><button class="btn end" style="background:var(--red);color:#fff;border:0" onclick="endShift()">Завершить</button></div></div>`
@@ -1069,6 +1221,7 @@ function viewHome() {
       <div class="two"><button class="btn alt" onclick="addW=false;render()">Отмена</button><button class="btn" onclick="addPastShift()">Создать</button></div></div>`
       : `<button class="link" onclick="addW=true;render()">+ Добавить прошедшую сессию</button>`) +
     `</div></section>`;
+  h += todayCard();
   if (ended) { const w = W.find(x => x.id === ended); if (w) h += `<h2>${endedLbl}</h2>` + shiftCard(w, true); }
   const rest = tw.filter(w => w.id !== ended);
   if (rest.length) h += `<h2>Сессии сегодня</h2>` + rest.slice().reverse().map(w => shiftCard(w, true)).join('');
@@ -1204,7 +1357,7 @@ function viewProjects() {
   return h;
 }
 function viewProject(p) {
-  const s = projSec(p.id), ts = T.filter(t => t.p === p.id).sort((a, b) => (!!a.d - !!b.d)), c = colorOf(p.id);
+  const s = projSec(p.id), ts = T.filter(t => t.p === p.id).sort((a, b) => (!!a.d - !!b.d) || a.o - b.o), c = colorOf(p.id);
   const done = ts.filter(t => t.d).length;
   let h = `<a class="back" href="#" onclick="cur=null;ren=null;render();return false">‹ ${folder(p.f) ? esc(folder(p.f).n) : 'Проекты'}</a>` +
     (ren === 'p:' + p.id ? `<h2>${renInput(p.n, 80)}</h2>`
@@ -1230,16 +1383,16 @@ function viewProject(p) {
       <input id="paid-${p.id}" type="text" inputmode="decimal" value="${p.pp || 0}" placeholder="0" onchange="setPaid('${p.id}',this.value)" class="num">
       ${p.pr > 0 ? `<div class="hbar" style="margin-top:0"><i style="width:${Math.min(100, paid(p) / p.pr * 100)}%;background:var(--acc)"></i></div>` : ''}
       <button class="btn alt" style="margin-top:10px" onclick="setPart('${p.id}',false)">Оплачено полностью</button></div>`}
-    <div class="card"><div class="lbl" style="margin-bottom:4px">Задачи</div>`;
+    <div class="card"><div class="row" style="margin-bottom:4px"><span class="lbl">Задачи</span>${ts.length > 1 ? `<button class="link" style="margin:0;padding:0;color:var(--acc)" onclick="ordP=ordP==='${p.id}'?null:'${p.id}';render()">${ordP === p.id ? 'Готово' : '⇅ Порядок'}</button>` : ''}</div>`;
   if (!ts.length) h += '<div class="hint" style="padding:8px 0">Пока нет задач</div>';
   for (const t of ts) {
     const es = E.filter(e => e.t === t.id).sort((a, b) => b.a - a.a), running = S && S.t === t.id, sec = taskSec(t.id);
     h += `<div class="task ${t.d ? 'd' : ''}"><div class="row">` +
       (ren === 't:' + t.id ? renInput(t.n, 100)
-        : `<span><span class="tn">${esc(t.n)}</span><button class="pen" onclick="startRen('t:${t.id}')">✎</button></span><span style="white-space:nowrap">
-      <span class="hint num">${fh(sec)}</span>
+        : `<span><span class="tn">${esc(t.n)}</span>${t.dd && !t.d ? ' ' + dueChip(t.dd) : ''}${t.st && !t.d ? ' <span style="color:var(--amb)">★</span>' : ''}<button class="pen" onclick="startRen('t:${t.id}')">✎</button></span><span style="white-space:nowrap">
+      ${ordP === p.id ? `<button class="ib" onclick="moveTask('${t.id}',-1)" aria-label="Выше">↑</button><button class="ib" onclick="moveTask('${t.id}',1)" aria-label="Ниже">↓</button></span>` : `<span class="hint num">${fh(sec)}</span>
       ${!t.d && !p.c ? `<button class="ib play" onclick="go('${t.id}')">${running ? '●' : '▶'}</button>` : ''}
-      ${!p.c ? `<button class="ib" onclick="toggleTask('${t.id}')">${t.d ? '↺' : '✓'}</button>` : ''}</span>`) +
+      ${!p.c ? `<button class="ib" onclick="toggleTask('${t.id}')">${t.d ? '↺' : '✓'}</button>` : ''}</span>`}`) +
       `</div><div class="hbar"><i style="width:${s ? sec / s * 100 : 0}%;background:${t.d ? 'var(--dim)' : c}"></i></div>
       <details ${openT.has(t.id) ? 'open' : ''} ontoggle="this.open?openT.add('${t.id}'):openT.delete('${t.id}')"><summary>Время по задаче</summary>
         ${es.map(e => editE === e.id ? `<div class="card" style="margin:6px 0;padding:12px;background:var(--s2)"><div class="hint" style="margin-bottom:4px">${e.w ? 'Отрезок из сессии ' + fdate(e.a) + ' ' + ftime(e.a) : 'Время, добавленное вручную'}</div>
@@ -1281,8 +1434,9 @@ function viewStats() {
     <div class="grid">${kpi('В задачах', hd(D.sec) + ' ч', fh(D.sec))}${kpi('Ставка', D.cSec ? money(D.avg) : '—', 'по закрытым проектам')}
       ${kpi('В сессиях', hd(D.studio) + ' ч', 'сессий: ' + D.ws.length + (D.nbr ? ' · ☕ ' + fh(D.breaks) : ''))}${kpi('Полезно', pct(D.inShift, D.studio) + '%', D.studio ? money(D.earned / (D.studio / 3600)) + '/ч за время сессий' : 'нет сессий')}</div>`;
   h += dayCols(D);
-  if (D.rows.length) {
-    h += `<div class="card"><div class="lbl">Куда ушло время</div><div class="stack">${D.rows.map(x => `<i style="flex:${x.sec};background:${colorOf(x.p.id)}"></i>`).join('')}</div>` +
+  if (D.rows.length || D.ibSec) {
+    h += `<div class="card"><div class="lbl">Куда ушло время</div><div class="stack">${D.rows.map(x => `<i style="flex:${x.sec};background:${colorOf(x.p.id)}"></i>`).join('')}${D.ibSec ? `<i style="flex:${D.ibSec};background:#7f8aa3"></i>` : ''}</div>` +
+      (D.ibSec ? `<div class="line"><span>${dot('#7f8aa3')}Дела без проекта</span><span class="num"><span class="hint">${pct(D.ibSec, D.sec)}% · </span>${hd(D.ibSec)} ч · <span class="hint">без денег</span></span></div>` : '') +
       D.rows.map(x => `<div class="line"><span>${dot(colorOf(x.p.id))}${esc(x.p.n)}</span><span class="num"><span class="hint">${pct(x.sec, D.sec)}% · </span>${hd(x.sec)} ч · ${x.open ? '<span class="hint">в работе</span>' : x.np ? '<span style="color:var(--amb)">без цены</span>' : money(x.earned)}</span></div>`).join('') + '</div>';
   }
   if (F.length && D.rows.length) {
@@ -1352,9 +1506,9 @@ window.addEventListener('resize', acPlace); if (window.visualViewport) visualVie
 document.addEventListener('scroll', e => { if (e.target !== acBox) acPlace(); }, true);
 function render() {
   acClose();
-  ['home', 'proj', 'stat'].forEach(t => $('#n-' + t).classList.toggle('on', t === tab));
+  ['home', 'todo', 'proj', 'stat'].forEach(t => $('#n-' + t).classList.toggle('on', t === tab));
   const p = cur && proj(cur);
-  $('#app').innerHTML = settings ? viewSettings() : gearBtn() + (tab === 'home' ? viewHome() : tab === 'stat' ? viewStats() : p ? viewProject(p) : viewProjects());
+  $('#app').innerHTML = settings ? viewSettings() : gearBtn() + (tab === 'home' ? viewHome() : tab === 'todo' ? viewTodo() : tab === 'stat' ? viewStats() : p ? viewProject(p) : viewProjects());
   const key = settings ? 'settings' : tab + (p ? p.id : ''); if (key !== render.k) { $('#app').scrollTop = 0; render.k = key; }
   if (V('6.1')) { if (p || settings) tg.BackButton.show(); else tg.BackButton.hide(); }
   const pg = $('#pager'); if (pg) { fitPager(); document.querySelectorAll('#app details').forEach(d => d.addEventListener('toggle', fitPager)); }
