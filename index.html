@@ -973,67 +973,14 @@ function resetCard() {
     <button class="btn alt" onclick="${BACKUP_URL ? 'sendBackup()' : 'resetAsk=false;backup()'}">${BACKUP_URL ? '📩 Сначала отправить копию в чат' : 'Сначала сделать резервную копию'}</button>
     <div class="two" style="margin-top:4px"><button class="btn alt" onclick="resetAsk=false;render()">Отмена</button><button class="btn" style="background:var(--red);color:#fff" onclick="resetAll()">Удалить всё</button></div></div>`;
 }
-/* ===== Подписка ===== */
-const API = BACKUP_URL.replace(/\/+$/, '');
-let sub = null; // ответ сервера о подписке; null — проверка не проводилась или нет связи (тогда доступ открыт)
-try { const c = JSON.parse(localStorage.getItem('st-sub') || 'null'); if (c && c.id) sub = c; } catch {}
-async function checkSub() {
-  if (!API || !cloud) { sub = null; return; }
-  try {
-    const r = await fetch(API + '/status', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ initData: tg.initData }) });
-    const j = await r.json();
-    if (j.ok) { sub = j; try { localStorage.setItem('st-sub', JSON.stringify(j)); } catch {} }
-  } catch {} // нет связи с сервером — не блокируем работу
-}
-const locked = () => !!(sub && !sub.active);
-const priceTxt = () => sub ? `${Math.round(sub.price)} ₽ за ${sub.days} дней` : '';
-function openPay() {
-  const u = API + '/pay';
-  try { if (V('6.1')) return tg.openLink(u); } catch {}
-  window.open(u, '_blank');
-}
-async function recheckSub() { await checkSub(); render(); if (locked()) toast('Оплата пока не видна. Если ты только что оплатил — перейди в бота по кнопке со страницы оплаты и нажми «Старт», потом проверь ещё раз.'); }
-async function cancelSub() {
-  if (!(await ask('Отключить автопродление? Доступ сохранится до конца оплаченного периода, больше списаний не будет.', 'Отключить', true))) return;
-  try {
-    const r = await fetch(API + '/cancel', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ initData: tg.initData }) });
-    const j = await r.json(); if (!j.ok) throw new Error(j.error);
-    sub = j; try { localStorage.setItem('st-sub', JSON.stringify(j)); } catch {}
-    render(); toast('Автопродление отключено.');
-  } catch (e) { toast('Не получилось: ' + ((e && e.message) || e)); }
-}
-function viewPaywall() {
-  const ended = sub.kind === 'trial-ended';
-  return `<section class="hero">
-    <div class="hero-top"><div class="lbl">Подписка</div><div class="greet">${ended ? 'Пробный период закончился' : 'Подписка закончилась'}</div></div>
-    <div class="hero-mid" style="text-align:center">
-      <div class="big" style="font-size:44px">${Math.round(sub.price)} ₽</div><div class="hint">за ${sub.days} дней · отменить можно в любой момент</div>
-      <div class="hint" style="margin:22px 8px 0">Все твои проекты, сессии и статистика сохранены — после оплаты всё сразу вернётся.</div>
-    </div>
-    <div class="hero-bot">
-      ${sub.canPay ? `<button class="btn" onclick="openPay()">Оформить подписку</button>` : `<div class="hint center" style="margin-bottom:8px">Оплата скоро появится</div>`}
-      <button class="btn alt" onclick="recheckSub()">Я оплатил — проверить</button>
-      <div class="hint center" style="margin-top:10px">После оплаты нажми «Перейти в бота» и «Старт» — подписка привяжется к твоему аккаунту.</div>
-    </div></section>`;
-}
-function subCard() {
-  if (!sub) return '';
-  const d = t => new Date(t * 1000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-  let h = `<div class="card"><div class="lbl">Подписка</div><div style="margin:8px 0 4px;font-weight:600">`;
-  if (sub.kind === 'owner' || sub.kind === 'free') h += 'Бесплатный доступ</div>';
-  else if (sub.kind === 'trial') h += `Пробный период до ${d(sub.until)}</div><div class="hint" style="margin-bottom:10px">Дальше — ${priceTxt()}.</div>` + (sub.canPay ? `<button class="btn" onclick="openPay()">Оформить подписку</button>` : '');
-  else if (sub.kind === 'paid') h += `Активна до ${d(sub.until)}</div><div class="hint" style="margin-bottom:10px">${sub.autoRenew ? `Автопродление включено: ${priceTxt()}.` : 'Автопродление выключено — после этой даты доступ закроется.'}</div>` +
-    (sub.autoRenew ? `<button class="btn del" onclick="cancelSub()">Отключить автопродление</button>` : (sub.canPay ? `<button class="btn alt" onclick="openPay()">Оформить заново</button>` : ''));
-  else h += `Не активна</div>` + (sub.canPay ? `<button class="btn" onclick="openPay()">Оформить подписку</button>` : '');
-  return h + `<div class="hint" style="margin-top:10px">Твой Telegram ID: <span class="num">${sub.id}</span></div></div>`;
-}
+try { localStorage.removeItem('st-sub'); } catch {} // остаток старой версии с подпиской
 function appCard() {
   if (!canFull) return '';
   return `<div class="card"><div class="lbl">Приложение</div><div class="row" style="margin-top:8px"><span>Во весь экран<div class="hint">Скрывает шапку Telegram</div></span>
     <label class="tgl"><input type="checkbox" ${opt.full === false ? '' : 'checked'} onchange="opt.full=this.checked;saveO();setFull(this.checked);render()" aria-label="Во весь экран"><i></i></label></div></div>`;
 }
 function viewSettings() {
-  return `<a class="back" href="#" onclick="settings=false;render();return false">‹ Назад</a><h2>Настройки</h2>` + subCard() + appCard() + foldersCard() + backupCard() + chatBkCard() +
+  return `<a class="back" href="#" onclick="settings=false;render();return false">‹ Назад</a><h2>Настройки</h2>` + appCard() + foldersCard() + backupCard() + chatBkCard() +
     `<div class="card"><div class="lbl">Где хранятся данные</div>` + (cloud
       ? `<div class="hint" style="margin-top:6px">Данные привязаны к твоему аккаунту Telegram и хранятся в облаке Telegram.</div>`
       : `<div class="hint" style="margin-top:6px;color:var(--amb)">Связь с Telegram не установлена — данные сейчас хранятся только на этом устройстве.</div><div class="hint" style="margin-top:6px">${!tg ? 'Не загрузился модуль Telegram (telegram-web-app.js). Открой приложение через кнопку бота; если не помогло — проверь интернет/VPN и обнови Telegram.' : !tg.initData ? 'Приложение открыто не через кнопку бота.' : 'Версия Telegram устарела (' + esc(tg.version || '?') + '), обнови приложение.'}</div>`) + `</div>` + resetCard();
@@ -1162,7 +1109,7 @@ setInterval(() => {
 function render() {
   ['home', 'proj', 'stat'].forEach(t => $('#n-' + t).classList.toggle('on', t === tab));
   const p = cur && proj(cur);
-  $('#app').innerHTML = settings ? viewSettings() : locked() ? gearBtn() + viewPaywall() : gearBtn() + (tab === 'home' ? viewHome() : tab === 'stat' ? viewStats() : p ? viewProject(p) : viewProjects());
+  $('#app').innerHTML = settings ? viewSettings() : gearBtn() + (tab === 'home' ? viewHome() : tab === 'stat' ? viewStats() : p ? viewProject(p) : viewProjects());
   const key = settings ? 'settings' : tab + (p ? p.id : ''); if (key !== render.k) { $('#app').scrollTop = 0; render.k = key; }
   if (V('6.1')) { if (p || settings) tg.BackButton.show(); else tg.BackButton.hide(); }
   const pg = $('#pager'); if (pg) { fitPager(); document.querySelectorAll('#app details').forEach(d => d.addEventListener('toggle', fitPager)); }
@@ -1179,7 +1126,7 @@ setInterval(() => {
   const k = $('#wwork'); if (k) k.textContent = fh(sum(shiftEs(S.w.id)));
   const t = $('#tclock'); if (t && S.t) t.textContent = fd(taskSec(S.t));
 }, 1000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden && locked()) checkSub().then(render); if (!document.hidden && !ren && !document.activeElement.matches('input,textarea')) render(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && !ren && !document.activeElement.matches('input,textarea')) render(); });
 
 // запрет масштабирования: щипок (iOS), Ctrl+колесо (двойной тап отключён через touch-action в CSS) / Ctrl+± на компьютере
 ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
@@ -1193,7 +1140,7 @@ function showErr(m) {
 window.addEventListener('error', e => showErr(e.message || 'неизвестная'));
 window.addEventListener('unhandledrejection', e => showErr((e.reason && e.reason.message) || String(e.reason)));
 initSwipe();
-load().then(async () => { if (opt.full !== false) setFull(true); try { if (mobile && V('8.0')) tg.lockOrientation(); } catch {} render(); await checkSub(); render(); autoBackup(); }).catch(e => { $('#app').innerHTML = '<div class="card">Не удалось загрузить данные: ' + esc((e && e.message) || e) + '</div>'; });
+load().then(async () => { if (opt.full !== false) setFull(true); try { if (mobile && V('8.0')) tg.lockOrientation(); } catch {} render(); autoBackup(); }).catch(e => { $('#app').innerHTML = '<div class="card">Не удалось загрузить данные: ' + esc((e && e.message) || e) + '</div>'; });
 </script>
 </body>
 </html>
