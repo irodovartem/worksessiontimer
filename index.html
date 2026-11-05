@@ -13,7 +13,7 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;touch-action:pan-
 input,textarea,select{font-size:16px!important}
 body{margin:0;position:fixed;inset:0;background:var(--bg);color:var(--tx);font:15px/1.45 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
 :root{--top:0px;--bot:max(env(safe-area-inset-bottom),var(--tgb,0px))}
-#app{position:absolute;top:var(--top);left:0;right:0;bottom:calc(64px + var(--bot));overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 16px 28px}
+#app{position:absolute;top:var(--top);left:0;right:0;bottom:calc(64px + var(--bot));overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 16px 28px}
 h2{margin:22px 0 10px;font-size:26px;font-weight:700;letter-spacing:-.02em}
 h3{margin:0 0 10px;font-size:15px;font-weight:600}
 .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
@@ -125,7 +125,7 @@ a.back{color:var(--mut);text-decoration:none;display:inline-block;margin-top:16p
 .cols{display:flex;align-items:flex-end;gap:3px;height:110px;margin-top:14px}
 .cols .c{flex:1;position:relative;height:100%}
 .cols .c b,.cols .c i{position:absolute;bottom:0;left:0;right:0;border-radius:3px 3px 1px 1px}
-.cols .c b{background:var(--s2)}
+.cols .c b{background:#5c5c6e}
 .cols .c i{background:var(--acc)}
 .axis{display:flex;gap:3px;margin-top:6px}
 .axis span{flex:1;text-align:center;font-size:10px;color:var(--dim);font-family:var(--mono);overflow:visible;white-space:nowrap}
@@ -164,14 +164,6 @@ function setFull(on) {
   try { if (on && !tg.isFullscreen) tg.requestFullscreen(); if (!on && tg.isFullscreen) tg.exitFullscreen(); } catch {}
   setTimeout(applyInsets, 300);
 }
-// иконка на главном экране телефона
-let homeSt = 'unsupported';
-function checkHome() {
-  if (!(tg && V('8.0') && tg.checkHomeScreenStatus)) return;
-  try { tg.checkHomeScreenStatus(st => { homeSt = st || 'unknown'; if (settings) render(); }); } catch {}
-}
-if (tg && V('8.0')) try { tg.onEvent('homeScreenAdded', () => { homeSt = 'added'; render(); toast('Готово — иконка приложения на главном экране.'); }); } catch {}
-function addHome() { try { tg.addToHomeScreen(); } catch (e) { toast('Не получилось: ' + ((e && e.message) || e)); } }
 const cloud = !!(tg && tg.initData && tg.CloudStorage && V('6.9'));
 const LS = 'st-';
 
@@ -405,18 +397,24 @@ function pagerGo(i, anim = true) {
 function goFolder(i) { pagerGo(i); }
 // Свайп между папками: страница едет за пальцем, при отпускании доводится до ближайшей
 // слушаем весь экран, а не только ленту, чтобы свайп работал и на пустом месте под короткой папкой
-function statSwipe(dir) { // dir: +1 — следующий период, -1 — предыдущий
-  const el = $('#swp'); if (!el) { sOff += dir; report = null; render(); return; }
-  el.style.transition = 'transform .16s ease-in, opacity .16s';
-  el.style.transform = `translateX(${-dir * 35}%)`; el.style.opacity = '0';
-  setTimeout(() => {
-    sOff += dir; report = null; render();
-    const n = $('#swp'); if (!n) return;
-    n.style.transition = 'none'; n.style.transform = `translateX(${dir * 35}%)`; n.style.opacity = '0';
-    void n.offsetWidth;
-    n.style.transition = 'transform .26s cubic-bezier(.22,.8,.24,1), opacity .26s';
-    n.style.transform = ''; n.style.opacity = '';
-  }, 160);
+let statAnim = false;
+function statSwipe(dir, fromDx = 0) { // dir: +1 — следующий период, -1 — предыдущий; fromDx — где отпустили палец
+  const old = $('#swp');
+  if (!old || statAnim) { sOff += dir; report = null; render(); return; }
+  statAnim = true;
+  const W = old.offsetWidth, top = old.offsetTop, left = old.offsetLeft;
+  const ghost = old.cloneNode(true); ghost.removeAttribute('id');
+  sOff += dir; report = null; render();
+  const nw = $('#swp'), app = $('#app');
+  Object.assign(ghost.style, { position: 'absolute', top: top + 'px', left: left + 'px', width: W + 'px', margin: '0', pointerEvents: 'none', transition: 'none', transform: `translateX(${fromDx}px)` });
+  app.appendChild(ghost);
+  nw.style.transition = 'none'; nw.style.transform = `translateX(${dir * W + fromDx}px)`;
+  void nw.offsetWidth;
+  const ease = 'transform .34s cubic-bezier(.22,.8,.24,1)';
+  ghost.style.transition = ease; nw.style.transition = ease;
+  ghost.style.transform = `translateX(${-dir * W}px)`; nw.style.transform = 'translateX(0)';
+  const done = () => { if (!statAnim) return; statAnim = false; ghost.remove(); nw.style.transition = ''; nw.style.transform = ''; };
+  nw.addEventListener('transitionend', done, { once: true }); setTimeout(done, 450);
 }
 // Свайпы: папки в «Проектах» (лента едет за пальцем) и периоды в «Статистике». Слушаем весь экран.
 function initSwipe() {
@@ -424,7 +422,7 @@ function initSwipe() {
   app.addEventListener('touchstart', e => {
     lock = null; dx = 0;
     pg = $('#pager'); tr = !settings && pg && pg.offsetParent && ((tab === 'proj' && !cur) || tab === 'home') ? pg.firstElementChild : null;
-    el = !settings && tab === 'stat' ? $('#swp') : null;
+    el = !settings && tab === 'stat' && !statAnim ? $('#swp') : null;
     mode = tr ? 'p' : el ? 's' : null;
     if (!mode || e.touches.length > 1 || e.target.closest('.ftabs,textarea,input,select')) { lock = 'n'; return; }
     const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; t0 = Date.now();
@@ -445,7 +443,7 @@ function initSwipe() {
       tr.style.transform = `translateX(calc(${-ci * 100}% + ${dx}px))`;
     } else {
       dx = mx;
-      el.style.transform = `translateX(${dx}px)`; el.style.opacity = String(1 - Math.min(.6, Math.abs(dx) / app.clientWidth));
+      dx = mx; el.style.transform = `translateX(${dx}px)`;
     }
   }, { passive: false });
   const end = () => {
@@ -453,8 +451,8 @@ function initSwipe() {
     lock = null;
     const W = app.clientWidth, v = Math.abs(dx) / Math.max(1, Date.now() - t0), go = Math.abs(dx) > W * 0.22 || (v > 0.35 && Math.abs(dx) > 24);
     if (mode === 'p') pagerGo(pgIdx() + (go ? (dx < 0 ? 1 : -1) : 0));
-    else if (go) statSwipe(dx < 0 ? 1 : -1);
-    else { el.style.transition = 'transform .25s cubic-bezier(.22,.8,.24,1), opacity .25s'; el.style.transform = ''; el.style.opacity = ''; }
+    else if (go) statSwipe(dx < 0 ? 1 : -1, dx);
+    else { el.style.transition = 'transform .28s cubic-bezier(.22,.8,.24,1)'; el.style.transform = ''; }
   };
   app.addEventListener('touchend', end); app.addEventListener('touchcancel', end);
 }
@@ -583,12 +581,6 @@ async function copyBackup() {
   try { await navigator.clipboard.writeText(bkText); toast('Скопировано'); }
   catch { const a = $('#bk'); if (a) { a.focus(); a.select(); } toast('Не вышло скопировать автоматически — текст выделен, скопируй вручную'); }
 }
-function downloadBackup() {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([bkText || backupData()], { type: 'application/json' }));
-  a.download = 'work-timer-' + new Date().toLocaleDateString('sv') + '.json';
-  document.body.appendChild(a); a.click(); a.remove();
-}
 function readBkFile(inp) {
   const f = inp.files && inp.files[0]; if (!f) return;
   const r = new FileReader(); r.onload = () => { $('#rst').value = r.result; }; r.readAsText(f);
@@ -640,6 +632,27 @@ async function sendBackup(silent) {
     return false;
   } finally { bkSending = false; render(); }
 }
+// отчёт файлом в чат с ботом (тот же сервер, что и для копий)
+let repSending = false;
+async function sendReport() {
+  if (!BACKUP_URL || repSending) return;
+  if (!cloud) return toast('Отправка в чат работает только внутри Telegram — открой приложение через кнопку бота.');
+  const D = periodData(), r = D.r, d0 = new Date(r.a * 1000);
+  const name = sMode === 'week' ? `otchet-nedelya-${d0.toLocaleDateString('sv')}.txt` : `otchet-mesyac-${d0.toLocaleDateString('sv').slice(0, 7)}.txt`;
+  const caption = `📊 Отчёт за ${sMode === 'week' ? 'неделю ' + r.label : r.label}\nВ задачах: ${fh(D.sec)} · заработано ${money(D.earned)} · ${money(D.avg)}/ч\nВ сессиях: ${fh(D.studio)}, сессий: ${D.ws.length}`;
+  repSending = true; render();
+  try {
+    const res = await fetch(BACKUP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ initData: tg.initData, name, caption, data: '﻿' + reportText() }) });
+    const j = await res.json().catch(() => ({ ok: false, error: 'Сервер ответил ' + res.status }));
+    if (!j.ok) throw new Error(j.error || 'неизвестная ошибка');
+    toast('Готово — отчёт уже в чате с ботом.');
+  } catch (e) {
+    let m = (e && e.message) || String(e);
+    if (/chat not found|initiate|blocked/i.test(m)) m += '\n\nОткрой чат с ботом и нажми «Старт» (или разблокируй бота), потом попробуй снова.';
+    else if (/Failed to fetch|NetworkError|Load failed/i.test(m)) m = 'Не удалось связаться с сервером. Проверь интернет и попробуй ещё раз.';
+    toast('Не получилось отправить отчёт: ' + m);
+  } finally { repSending = false; render(); }
+}
 function autoBackup() {
   const per = opt.autoBk === 'day' ? 86400 : opt.autoBk === 'week' ? 7 * 86400 : 0;
   if (per && BACKUP_URL && cloud && now() - lastBk > per - 3600) sendBackup(true);
@@ -659,12 +672,12 @@ function backupCard() {
     <div class="two"><button class="btn alt" onclick="backup()">${BACKUP_URL ? 'Копия текстом' : 'Сохранить копию'}</button><button class="btn alt" onclick="bkRestore=!bkRestore;bkText=null;render()">Восстановить</button></div>`;
   if (bkText) h += `<textarea id="bk" readonly style="min-height:120px">${esc(bkText)}</textarea>
     <div class="hint">Текст уже скопирован. Открой «Избранное» в Telegram, вставь и отправь — это и есть твоя копия.</div>
-    <button class="btn alt" style="margin-top:8px" onclick="copyBackup()">Скопировать ещё раз</button>` +
-    (tg && tg.initData ? '' : `<button class="btn alt" onclick="downloadBackup()">Скачать файл .json</button>`);
+    <button class="btn alt" style="margin-top:8px" onclick="bkText=null;render()">Закрыть</button>`;
   if (bkRestore) h += `<div class="hint" style="margin-top:10px">Вставь текст копии или выбери файл:</div>
     <textarea id="rst" style="min-height:120px" placeholder='Вставь сюда текст копии'></textarea>
     <input type="file" accept=".json,.txt,application/json,text/plain" onchange="readBkFile(this)">
-    <button class="btn del" onclick="restore()">Восстановить — заменит текущие данные</button>`;
+    <button class="btn del" onclick="restore()">Восстановить — заменит текущие данные</button>
+    <button class="btn alt" onclick="bkRestore=false;render()">Закрыть</button>`;
   return h + '</div>';
 }
 
@@ -1015,14 +1028,9 @@ function subCard() {
   return h + `<div class="hint" style="margin-top:10px">Твой Telegram ID: <span class="num">${sub.id}</span></div></div>`;
 }
 function appCard() {
-  if (!canFull && homeSt === 'unsupported') return '';
-  let h = `<div class="card"><div class="lbl">Приложение</div>`;
-  if (canFull) h += `<div class="row" style="margin-top:8px"><span>Во весь экран<div class="hint">Скрывает шапку Telegram</div></span>
-    <label class="tgl"><input type="checkbox" ${opt.full === false ? '' : 'checked'} onchange="opt.full=this.checked;saveO();setFull(this.checked);render()" aria-label="Во весь экран"><i></i></label></div>`;
-  if (homeSt !== 'unsupported') h += `<div style="${canFull ? 'border-top:1px solid var(--line);margin-top:12px;padding-top:12px' : 'margin-top:8px'}">` +
-    (homeSt === 'added' ? `<div class="row"><span>Иконка на главном экране</span><span class="hint" style="color:var(--acc)">✓ добавлена</span></div>`
-      : `<div style="margin-bottom:8px">Иконка на главном экране<div class="hint">Открывай приложение с рабочего стола телефона, как обычное</div></div><button class="btn alt" onclick="addHome()">📲 Добавить на главный экран</button>`) + `</div>`;
-  return h + `</div>`;
+  if (!canFull) return '';
+  return `<div class="card"><div class="lbl">Приложение</div><div class="row" style="margin-top:8px"><span>Во весь экран<div class="hint">Скрывает шапку Telegram</div></span>
+    <label class="tgl"><input type="checkbox" ${opt.full === false ? '' : 'checked'} onchange="opt.full=this.checked;saveO();setFull(this.checked);render()" aria-label="Во весь экран"><i></i></label></div></div>`;
 }
 function viewSettings() {
   return `<a class="back" href="#" onclick="settings=false;render();return false">‹ Назад</a><h2>Настройки</h2>` + subCard() + appCard() + foldersCard() + backupCard() + chatBkCard() +
@@ -1105,7 +1113,7 @@ function dayCols(D) {
   return `<div class="card"><div class="row"><span class="lbl">Часы по дням</span><span class="hint num">макс ${hd(mx)} ч</span></div>
     <div class="cols">${days.map(x => `<div class="c"><b style="height:${x.st / mx * 100}%"></b><i style="height:${x.wk / mx * 100}%"></i></div>`).join('')}</div>
     <div class="axis">${days.map(x => `<span>${lab(x)}</span>`).join('')}</div>
-    <div class="leg"><span><i style="background:var(--s2);outline:1px solid var(--dim)"></i>в сессиях</span><span><i style="background:var(--acc)"></i>в задачах</span></div></div>`;
+    <div class="leg"><span><i style="background:#5c5c6e"></i>в сессиях</span><span><i style="background:var(--acc)"></i>в задачах</span></div></div>`;
 }
 function viewStats() {
   const D = periodData(), r = D.r;
@@ -1132,7 +1140,10 @@ function viewStats() {
       `<div style="padding:9px 0"><div class="row"><span>${esc(x.p.n)}${x.p.c ? '' : ' <span class="hint">предв.</span>'}${n > 1 && i === 0 ? ' <span class="badge done">дороже всего</span>' : n > 1 && i === n - 1 ? ' <span class="badge" style="color:var(--red)">дешевле всего</span>' : ''}</span><span class="num">${money(x.rt)}/ч</span></div>
        <div class="hbar"><i style="width:${x.rt / mx * 100}%;background:${colorOf(x.p.id)}"></i></div></div>`).join('') + '</div>';
   }
-  h += `<button class="btn" style="margin-top:4px" onclick="makeReport()">Выгрузить отчёт за ${sMode === 'week' ? 'неделю' : 'месяц'}</button>`;
+  const per = sMode === 'week' ? 'неделю' : 'месяц';
+  h += BACKUP_URL
+    ? `<button class="btn" style="margin-top:4px" onclick="sendReport()" ${repSending ? 'disabled style="opacity:.6;margin-top:4px"' : ''}>${repSending ? 'Отправляю…' : '📩 Отчёт за ' + per + ' в чат'}</button><button class="btn alt" onclick="makeReport()">Скопировать отчёт текстом</button>`
+    : `<button class="btn" style="margin-top:4px" onclick="makeReport()">Выгрузить отчёт за ${per}</button>`;
   if (report) h += `<div class="card" id="repc"><div class="row" style="margin-bottom:6px"><span class="lbl">Отчёт · скопирован</span><button class="x" onclick="report=null;render()" aria-label="Закрыть отчёт">✕</button></div>
     <textarea id="rep" readonly>${esc(report)}</textarea>
     <div class="two"><button class="btn alt" onclick="copyReport()">Скопировать ещё раз</button><button class="btn alt" onclick="report=null;render()">Закрыть</button></div></div>`;
@@ -1182,7 +1193,7 @@ function showErr(m) {
 window.addEventListener('error', e => showErr(e.message || 'неизвестная'));
 window.addEventListener('unhandledrejection', e => showErr((e.reason && e.reason.message) || String(e.reason)));
 initSwipe();
-load().then(async () => { if (opt.full !== false) setFull(true); try { if (mobile && V('8.0')) tg.lockOrientation(); } catch {} checkHome(); render(); await checkSub(); render(); autoBackup(); }).catch(e => { $('#app').innerHTML = '<div class="card">Не удалось загрузить данные: ' + esc((e && e.message) || e) + '</div>'; });
+load().then(async () => { if (opt.full !== false) setFull(true); try { if (mobile && V('8.0')) tg.lockOrientation(); } catch {} render(); await checkSub(); render(); autoBackup(); }).catch(e => { $('#app').innerHTML = '<div class="card">Не удалось загрузить данные: ' + esc((e && e.message) || e) + '</div>'; });
 </script>
 </body>
 </html>
