@@ -275,7 +275,7 @@ async function load() {
     if (k === 'B') { lastBk = +d || 0; continue; }
     if (k === 'O') { opt = Object.assign(opt, d); continue; }
     cache[k] = s;
-    if (k.startsWith('P-')) d.forEach(r => P.push({ id: r[0], n: r[1], pr: r[2], c: r[3], cr: r[4], h: r[5] || [], f: r[6] || '', u: r[7] ? 1 : 0, g: Array.isArray(r[8]) ? r[8] : [], t: r[9] && typeof r[9] === 'object' ? r[9] : {}, pp: +r[10] || 0, wt: +r[11] || 0, cl: r[12] ?? -1 }));
+    if (k.startsWith('P-')) d.forEach(r => P.push({ id: r[0], n: r[1], pr: r[2], c: r[3], cr: r[4], h: r[5] || [], f: r[6] || '', u: r[7] ? 1 : 0, g: Array.isArray(r[8]) ? r[8] : [], t: r[9] && typeof r[9] === 'object' ? r[9] : {}, pp: +r[10] || 0, wt: +r[11] || 0, cl: r[12] ?? -1, part: r.length > 13 ? (r[13] ? 1 : 0) : (+r[10] > 0 && +r[10] < +r[2] ? 1 : 0) }));
     else if (k.startsWith('F-')) d.forEach(r => F.push({ id: r[0], n: r[1], cr: r[2], cl: r[3] ?? -1 }));
     else if (k.startsWith('T-')) d.forEach(r => T.push({ id: r[0], p: r[1], n: r[2], d: r[3] }));
     else if (k.startsWith('w-')) d.forEach(r => W.push({ id: r[0], a: r[1], b: r[2], k: r[3] || [] }));
@@ -305,7 +305,7 @@ async function saveChunks(prefix, rows) {
 }
 let queue = Promise.resolve();
 const persist = fn => { queue = queue.then(fn).catch(e => toast('Ошибка сохранения: ' + ((e && e.message) || e))); };
-const saveP = () => persist(() => saveChunks('P-', P.map(p => [p.id, p.n, p.pr, p.c, p.cr, p.h, p.f || '', p.u ? 1 : 0, p.g || [], p.t || {}, p.pp || 0, p.wt || 0, p.cl ?? -1])));
+const saveP = () => persist(() => saveChunks('P-', P.map(p => [p.id, p.n, p.pr, p.c, p.cr, p.h, p.f || '', p.u ? 1 : 0, p.g || [], p.t || {}, p.pp || 0, p.wt || 0, p.cl ?? -1, p.part ? 1 : 0])));
 // настройки по умолчанию: вкладки «Все» и «Завершённые» видны, режим «В ожидании» включён, полный экран
 const DEF_OPT = () => ({ hideAll: false, hideDone: false, noWait: false, full: true, folderCol: true, plainTags: true });
 let opt = DEF_OPT();
@@ -382,11 +382,12 @@ function newProject(fid = '') {
   if (fs) fid = folder(fs.value) ? fs.value : '';
   const tt = {}; cats().forEach(c => { const el = $('#np-t-' + k + '-' + c.id), v = el ? el.value.trim().slice(0, 60) : ''; if (v) tt[c.id] = v; });
   if (!n) return toast('Впиши название проекта');
-  const noPrice = $('#np-p-' + k).value.trim() === '', ppv = ($('#np-pp-' + k) || { value: '' }).value.trim(), pp = ppv === '' ? 0 : num(ppv);
+  const ppd = $('#np-ppd-' + k), part = ppd && ppd.open ? 1 : 0;
+  const noPrice = $('#np-p-' + k).value.trim() === '', ppv = part ? $('#np-pp-' + k).value.trim() : '', pp = ppv === '' ? 0 : num(ppv);
   if (!noPrice && !(pr >= 0)) return toast('Цена — это число. Или оставь поле пустым и укажи цену позже.');
-  if (!(pp >= 0)) return toast('Предоплата — это число. Если её не было, оставь поле пустым.');
-  if (!noPrice && pp > pr) return toast('Предоплата больше стоимости проекта — проверь суммы.');
-  P.push({ id: uid(), n, pr: noPrice ? 0 : pr, c: 0, cr: now(), h: [], f: fid, u: noPrice ? 1 : 0, g: [], t: tt, pp, cl: freeColor() }); saveP(); newPOpen = false; render();
+  if (!(pp >= 0)) return toast('Сколько заплатили — это число. Если пока ничего, впиши 0.');
+  if (!noPrice && pp > pr) return toast('Получено больше стоимости проекта — проверь суммы.');
+  P.push({ id: uid(), n, pr: noPrice ? 0 : pr, c: 0, cr: now(), h: [], f: fid, u: noPrice ? 1 : 0, g: [], t: tt, pp, part, cl: freeColor() }); saveP(); newPOpen = false; render();
 }
 function newTask(pid, andGo, src, done) {
   const el = src ? (src.tagName === 'INPUT' ? src : src.parentNode.querySelector('input')) : $('#nt-' + pid), n = el.value.trim();
@@ -544,16 +545,17 @@ function addPay(pid) {
   p.pr += a; p.h.push([now(), a, note]); saveP(); render();
 }
 function delPay(pid, i) { const p = proj(pid); p.pr -= p.h[i][1]; p.h.splice(i, 1); saveP(); render(); }
-const paid = p => Math.min(p.pp || 0, p.pr), owed = p => Math.max(0, p.pr - (p.pp || 0));
+const paid = p => p.part ? Math.min(p.pp || 0, p.pr) : p.pr, owed = p => p.part ? Math.max(0, p.pr - (p.pp || 0)) : 0;
 function setPaid(pid, v) { const p = proj(pid), x = String(v).trim() === '' ? 0 : num(v); if (x >= 0) { p.pp = x; saveP(); } else toast('Впиши сумму числом'); render(); }
+function setPart(pid, on) { const p = proj(pid); p.part = on ? 1 : 0; if (on) p.pp = 0; saveP(); render(); if (on) { const el = $('#paid-' + pid); if (el) { el.focus(); el.select(); } } }
 async function closeProject(pid) {
   const p = proj(pid);
-  if (!p.u && p.pr > 0) {
+  if (!p.u && p.pr > 0 && p.part) {
     const got = p.pp || 0, left = owed(p);
     const ok = await modal(`Ты получил всю сумму за проект «${p.n}» — ${money(p.pr)}?` + (got > 0 ? `\nПредоплата: ${money(got)}, остаток: ${money(left)}.` : ''),
       [{ t: 'Ещё нет', v: false }, { t: 'Да, получил всё', v: true }]);
     if (!ok) return toast(`Проект остаётся в работе.\n${left < p.pr ? 'Ждём остаток ' + money(left) + '. ' : ''}Когда получишь деньги — закрой его снова, и он попадёт в статистику.`);
-    p.pp = p.pr;
+    p.pp = p.pr; p.part = 0;
   }
   releaseIfIn(x => (task(x) || {}).p === pid);
   p.c = now(); p.wt = 0; saveP(); render();
@@ -572,11 +574,22 @@ async function delEntry(id) {
   const e = E.find(x => x.id === id); if (!(await ask('Удалить отрезок ' + fdate(e.a) + ' ' + ftime(e.a) + ' (' + fh(e.b - e.a) + ')?'))) return;
   E = E.filter(x => x.id !== id); saveM(ymOf(e.a)); render();
 }
+let editE = null; const openT = new Set();
+function saveEntry(id) {
+  const e = E.find(x => x.id === id); if (!e) return;
+  const d = $('#ed-' + id).value, m = parseHM($('#em-' + id).value);
+  if (!d || !(m > 0)) return toast('Укажи дату и время в формате чч:мм, например 1:30');
+  const oldYm = ymOf(e.a), t0 = new Date(e.a * 1000);
+  const a = Math.floor(new Date(d + 'T' + (e.w ? String(t0.getHours()).padStart(2, '0') + ':' + String(t0.getMinutes()).padStart(2, '0') : '12:00') + ':00').getTime() / 1000);
+  e.a = a; e.b = a + Math.round(m * 60); editE = null;
+  saveM(oldYm); if (ymOf(a) !== oldYm) saveM(ymOf(a)); render();
+}
+async function delEntryE(id) { await delEntry(id); editE = null; render(); }
 function addManual(tid) {
   const d = $('#md-' + tid).value, m = parseHM($('#mm-' + tid).value);
   if (!d || !(m > 0)) return toast('Укажи дату и время в формате чч:мм, например 1:30');
   const a = Math.floor(new Date(d + 'T12:00:00').getTime() / 1000);
-  E.push({ id: uid(), t: tid, a, b: a + Math.round(m * 60), w: null }); saveM(ymOf(a)); render();
+  E.push({ id: uid(), t: tid, a, b: a + Math.round(m * 60), w: null }); saveM(ymOf(a)); openT.add(tid); render();
 }
 let editW = null, addW = false;
 const atTime = (base, hm) => { const d = new Date(base * 1000), [hh, mm] = hm.split(':').map(Number); d.setHours(hh, mm, 0, 0); return Math.floor(d.getTime() / 1000); };
@@ -632,7 +645,7 @@ async function delShift(id) {
 let lastBk = 0, bkText = null, bkRestore = false;
 function backupData() {
   return JSON.stringify({ app: 'studio-timer', v: 1, at: now(),
-    F: F.map(f => [f.id, f.n, f.cr, f.cl ?? -1]), P: P.map(p => [p.id, p.n, p.pr, p.c, p.cr, p.h, p.f || '', p.u ? 1 : 0, p.g || [], p.t || {}, p.pp || 0, p.wt || 0, p.cl ?? -1]), T: T.map(t => [t.id, t.p, t.n, t.d]),
+    F: F.map(f => [f.id, f.n, f.cr, f.cl ?? -1]), P: P.map(p => [p.id, p.n, p.pr, p.c, p.cr, p.h, p.f || '', p.u ? 1 : 0, p.g || [], p.t || {}, p.pp || 0, p.wt || 0, p.cl ?? -1, p.part ? 1 : 0]), T: T.map(t => [t.id, t.p, t.n, t.d]),
     E: E.map(e => [e.id, e.t, e.a, e.b, e.w]), W: W.map(w => [w.id, w.a, w.b, w.k || []]), O: opt, S });
 }
 async function backup() {
@@ -653,7 +666,7 @@ async function restore() {
   let d; try { d = JSON.parse($('#rst').value.trim()); } catch { return toast('Это не похоже на копию: текст повреждён или вставлен не целиком.'); }
   if (!d || d.app !== 'studio-timer' || !Array.isArray(d.P) || !Array.isArray(d.T) || !Array.isArray(d.E)) return toast('Это не копия из этого приложения.');
   if (!(await ask(`Копия от ${fdate(d.at)} ${ftime(d.at)}: проектов ${d.P.length}, задач ${d.T.length}.\n\nВсе текущие данные будут заменены данными из копии.`, 'Восстановить', true))) return;
-  P = d.P.map(r => ({ id: r[0], n: r[1], pr: r[2], c: r[3], cr: r[4], h: r[5] || [], f: r[6] || '', u: r[7] ? 1 : 0, g: Array.isArray(r[8]) ? r[8] : [], t: r[9] && typeof r[9] === 'object' ? r[9] : {}, pp: +r[10] || 0, wt: +r[11] || 0, cl: r[12] ?? -1 }));
+  P = d.P.map(r => ({ id: r[0], n: r[1], pr: r[2], c: r[3], cr: r[4], h: r[5] || [], f: r[6] || '', u: r[7] ? 1 : 0, g: Array.isArray(r[8]) ? r[8] : [], t: r[9] && typeof r[9] === 'object' ? r[9] : {}, pp: +r[10] || 0, wt: +r[11] || 0, cl: r[12] ?? -1, part: r.length > 13 ? (r[13] ? 1 : 0) : (+r[10] > 0 && +r[10] < +r[2] ? 1 : 0) }));
   F = (d.F || []).map(r => ({ id: r[0], n: r[1], cr: r[2], cl: r[3] ?? -1 })); F.forEach((f, i) => { if (!(f.cl >= 0)) f.cl = i % 8; });
   const keep = { autoBk: opt.autoBk };
   opt = Object.assign(DEF_OPT(), keep, d.O || {}); setFull(opt.full !== false);
@@ -818,7 +831,7 @@ function reportText() {
       const p = x.p;
       t += `\n${i + 1}. ${p.n} [папка: ${fname(p)}; ${p.c ? 'закрыт ' + fdate(p.c) : 'в работе' + (isW(p) ? ' (в ожидании с ' + fdate(p.wt) + ')' : '') + ' — не закрыт, в заработок не входит'}]${projTags(p).length ? '\n   Теги: ' + tagsTxt(p) : ''}\n   Стоимость: ${priceTxt(p)}`;
       if (p.h.length) t += ` (изначально ${money(base(p))}; ` + p.h.map(h => `${h[1] > 0 ? '+' : ''}${money(h[1])} ${fdate(h[0])}${h[2] ? ' «' + h[2] + '»' : ''}`).join('; ') + ')';
-      if (!p.c && !p.u) t += `\n   Получено: ${money(paid(p))}${p.pp ? ' (предоплата)' : ''}, осталось получить: ${money(owed(p))}`;
+      if (!p.c && !p.u) t += p.part ? `\n   Оплачено не всё: получено ${money(paid(p))}, осталось получить ${money(owed(p))}` : `\n   Оплата: получена полностью`;
       t += `\n   Часов по проекту всего: ${hd(projSec(p.id))}; из них за период: ${hd(x.sec)}\n`;
       t += x.open ? `   Ставка и заработок: — (проект не закрыт; посчитаются после закрытия)\n`
         : x.np ? `   Ставка: — (цена не указана)\n   Заработано за период: — (цена не указана)\n`
@@ -998,7 +1011,7 @@ function pickerHTML() {
 }
 const projectForm = (fid = '') => `<input id="np-n-${fid || 'x'}" placeholder="Название проекта" maxlength="80">
   <input id="np-p-${fid || 'x'}" type="text" inputmode="decimal" placeholder="Цена, ₽ — можно позже">
-  <input id="np-pp-${fid || 'x'}" type="text" inputmode="decimal" placeholder="Предоплата, ₽ — если была">
+  <details class="sw" id="np-ppd-${fid || 'x'}" style="margin:0 0 6px;text-align:left"><summary style="text-align:left;padding:2px 4px 8px">Не вся сумма получена</summary><input id="np-pp-${fid || 'x'}" type="text" inputmode="decimal" placeholder="Сколько уже заплатили, ₽ (0 — ничего)"></details>
   ${catFields('np-t-' + (fid || 'x') + '-')}${catLists()}` +
   (F.length ? `<div class="lbl" style="margin:2px 0 0 4px">Папка</div><select id="np-f-${fid || 'x'}"><option value="">Без папки</option>${F.map(f => `<option value="${f.id}" ${f.id === fid ? 'selected' : ''}>${esc(f.n)}</option>`).join('')}</select>` : '') + `
   <button class="btn" onclick="newProject('${fid}')">Создать проект</button>`;
@@ -1120,7 +1133,7 @@ function projCard(p, showF) {
   const s = projSec(p.id), done = T.filter(t => t.p === p.id && t.d).length, all = T.filter(t => t.p === p.id).length;
   return `<button class="card pcard" onclick="cur='${p.id}';render()">
     <div class="row"><span>${dot(colorOf(p.id))}<b>${esc(p.n)}</b></span>${p.c ? '<span class="badge done">закрыт</span>' : isW(p) ? '<span class="badge wait">в ожидании</span>' : '<span class="badge">в работе</span>'}</div>
-    <div class="row" style="margin-top:10px">${p.u ? '<span style="color:var(--amb)">цена не указана</span>' : `<span class="num">${money(p.pr)}${!p.c && p.pp ? ` <span class="hint">· получено ${money(paid(p))}</span>` : ''}</span>`}<span class="num" style="color:${s && !p.u && p.c ? 'var(--acc)' : 'var(--dim)'}">${s && !p.u && p.c ? money(rate(p)) + '/ч' : p.c ? '—' : ''}</span></div>
+    <div class="row" style="margin-top:10px">${p.u ? '<span style="color:var(--amb)">цена не указана</span>' : `<span class="num">${money(p.pr)}${!p.c && p.part ? ` <span class="hint">· получено ${money(paid(p))}</span>` : ''}</span>`}<span class="num" style="color:${s && !p.u && p.c ? 'var(--acc)' : 'var(--dim)'}">${s && !p.u && p.c ? money(rate(p)) + '/ч' : p.c ? '—' : ''}</span></div>
     <div class="hbar"><i style="width:${all ? done / all * 100 : 0}%;background:${colorOf(p.id)}"></i></div>
     ${projTags(p).length ? `<div class="tags" style="margin-top:8px">${projTags(p).map(x => `<span class="tag" ${tagStyle(x.col)}>${esc(tagLabel(x))}</span>`).join('')}</div>` : ''}
     <div class="row hint" style="margin-top:6px"><span class="num">${fh(s)}${showF && folder(p.f) ? `</span><span>📁 ${esc(folder(p.f).n)}` : ''}</span><span class="num">задачи ${done}/${all}</span></div></button>`;
@@ -1212,9 +1225,11 @@ function viewProject(p) {
         <input id="pay-a" type="text" inputmode="decimal" placeholder="Сумма, ₽ (минус — если вычли)">
         <input id="pay-n" placeholder="За что (необязательно)" maxlength="60">
         <button class="btn alt" onclick="addPay('${p.id}')">Добавить</button></div></details>`}</div>
-    ${p.u || p.c ? '' : `<div class="card"><div class="row"><span class="lbl">Получено, ₽</span>${p.pr > 0 ? `<span class="hint num">${owed(p) ? 'осталось ' + money(owed(p)) : 'оплачено полностью'}</span>` : ''}</div>
-      <input type="text" inputmode="decimal" value="${p.pp || ''}" placeholder="0" onchange="setPaid('${p.id}',this.value)" class="num" style="margin-bottom:0">
-      ${p.pr > 0 ? `<div class="hbar"><i style="width:${Math.min(100, paid(p) / p.pr * 100)}%;background:var(--acc)"></i></div>` : ''}</div>`}
+    ${p.u || p.c ? '' : !p.part ? `<div class="card"><div class="row"><span class="lbl">Оплата</span><span><span style="color:var(--acc)">✓</span> Оплачено полностью</span></div><button class="btn alt" style="margin:10px 0 0" onclick="setPart('${p.id}',true)">Не вся сумма получена</button></div>`
+      : `<div class="card"><div class="row"><span class="lbl">Сколько заплатили, ₽</span>${p.pr > 0 ? `<span class="hint num">${owed(p) ? 'осталось ' + money(owed(p)) : 'всё получено'}</span>` : ''}</div>
+      <input id="paid-${p.id}" type="text" inputmode="decimal" value="${p.pp || 0}" placeholder="0" onchange="setPaid('${p.id}',this.value)" class="num">
+      ${p.pr > 0 ? `<div class="hbar" style="margin-top:0"><i style="width:${Math.min(100, paid(p) / p.pr * 100)}%;background:var(--acc)"></i></div>` : ''}
+      <button class="btn alt" style="margin-top:10px" onclick="setPart('${p.id}',false)">Оплачено полностью</button></div>`}
     <div class="card"><div class="lbl" style="margin-bottom:4px">Задачи</div>`;
   if (!ts.length) h += '<div class="hint" style="padding:8px 0">Пока нет задач</div>';
   for (const t of ts) {
@@ -1226,8 +1241,12 @@ function viewProject(p) {
       ${!t.d && !p.c ? `<button class="ib play" onclick="go('${t.id}')">${running ? '●' : '▶'}</button>` : ''}
       ${!p.c ? `<button class="ib" onclick="toggleTask('${t.id}')">${t.d ? '↺' : '✓'}</button>` : ''}</span>`) +
       `</div><div class="hbar"><i style="width:${s ? sec / s * 100 : 0}%;background:${t.d ? 'var(--dim)' : c}"></i></div>
-      <details><summary>Время по задаче</summary>
-        ${es.map(e => `<div class="line"><span class="hint num">${fdate(e.a)} ${ftime(e.a)}–${ftime(e.b)}${e.w ? '' : ' · вручную'}</span><span class="num">${fh(e.b - e.a)} <button class="x" onclick="delEntry('${e.id}')">✕</button></span></div>`).join('') || '<div class="hint" style="padding:6px 0">Пусто</div>'}
+      <details ${openT.has(t.id) ? 'open' : ''} ontoggle="this.open?openT.add('${t.id}'):openT.delete('${t.id}')"><summary>Время по задаче</summary>
+        ${es.map(e => editE === e.id ? `<div class="card" style="margin:6px 0;padding:12px;background:var(--s2)"><div class="hint" style="margin-bottom:4px">${e.w ? 'Отрезок из сессии ' + fdate(e.a) + ' ' + ftime(e.a) : 'Время, добавленное вручную'}</div>
+          <div class="inl"><input id="ed-${e.id}" type="date" value="${new Date(e.a * 1000).toLocaleDateString('sv')}" style="background:var(--s1)"><input id="em-${e.id}" ${hmAttrs} value="${hm(e.b - e.a)}" class="num" style="max-width:90px;background:var(--s1)"></div>
+          <div class="two"><button class="btn alt" style="background:var(--s1)" onclick="editE=null;render()">Отмена</button><button class="btn" onclick="saveEntry('${e.id}')">Сохранить</button></div>
+          <button class="btn del" onclick="delEntryE('${e.id}')">Удалить это время</button></div>`
+          : `<div class="line" onclick="editE='${e.id}';openT.add('${t.id}');render()" style="cursor:pointer"><span class="hint num">${fdate(e.a)} ${e.w ? ftime(e.a) + '–' + ftime(e.b) : '· вручную'}</span><span class="num">${fh(e.b - e.a)} <span class="pen">✎</span></span></div>`).join('') || '<div class="hint" style="padding:6px 0">Пусто</div>'}
         <div class="inl"><input id="md-${t.id}" type="date" value="${new Date().toLocaleDateString('sv')}"><input id="mm-${t.id}" ${hmAttrs} placeholder="чч:мм" class="num" style="max-width:90px"><button class="btn sm alt" onclick="addManual('${t.id}')">+</button></div>
         <button class="btn del" onclick="delTask('${t.id}')">Удалить задачу</button></details></div>`;
   }
