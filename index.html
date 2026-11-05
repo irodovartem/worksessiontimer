@@ -114,6 +114,14 @@ details.sw summary{text-align:center;padding:8px}
 .mmsg{white-space:pre-line;font-size:16px;line-height:1.45;margin:0 4px 16px}
 .mbtns{display:flex;gap:8px}.mbtns .btn{flex:1;margin:0}
 .btn.danger{background:var(--red);color:#fff}
+.tf{display:flex;align-items:center;gap:6px;background:var(--s2);border-radius:12px;padding:0 0 0 12px;margin:4px 0 8px;border:1px solid transparent}
+.tf:focus-within{border-color:rgba(200,240,74,.5)}
+.tf span{color:var(--mut);white-space:nowrap;font-size:15px}
+.tf input{margin:0;border:0;background:none;padding-left:4px}
+.tf input:focus{border:0}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{display:inline-flex;align-items:center;gap:2px;font-size:12px;padding:3px 9px;border-radius:20px;background:rgba(139,124,255,.14);color:#b6acff;white-space:nowrap}
+.tag button{border:0;background:none;color:inherit;opacity:.7;font-size:11px;padding:0 0 0 4px}
 .x{border:0;background:none;color:var(--dim);font-size:16px;padding:4px 8px}
 a.back{color:var(--mut);text-decoration:none;display:inline-block;margin-top:16px;font-size:14px}
 .top{color:var(--acc)}.low{color:var(--red)}
@@ -252,7 +260,7 @@ async function load() {
     if (k === 'B') { lastBk = +d || 0; continue; }
     if (k === 'O') { opt = Object.assign(opt, d); continue; }
     cache[k] = s;
-    if (k.startsWith('P-')) d.forEach(r => P.push({ id: r[0], n: r[1], pr: r[2], c: r[3], cr: r[4], h: r[5] || [], f: r[6] || '' }));
+    if (k.startsWith('P-')) d.forEach(r => P.push({ id: r[0], n: r[1], pr: r[2], c: r[3], cr: r[4], h: r[5] || [], f: r[6] || '', u: r[7] ? 1 : 0, g: Array.isArray(r[8]) ? r[8] : [], t: r[9] && typeof r[9] === 'object' ? r[9] : {} }));
     else if (k.startsWith('F-')) d.forEach(r => F.push({ id: r[0], n: r[1], cr: r[2] }));
     else if (k.startsWith('T-')) d.forEach(r => T.push({ id: r[0], p: r[1], n: r[2], d: r[3] }));
     else if (k.startsWith('w-')) d.forEach(r => W.push({ id: r[0], a: r[1], b: r[2], k: r[3] || [] }));
@@ -279,7 +287,7 @@ async function saveChunks(prefix, rows) {
 }
 let queue = Promise.resolve();
 const persist = fn => { queue = queue.then(fn).catch(e => toast('Ошибка сохранения: ' + ((e && e.message) || e))); };
-const saveP = () => persist(() => saveChunks('P-', P.map(p => [p.id, p.n, p.pr, p.c, p.cr, p.h, p.f || ''])));
+const saveP = () => persist(() => saveChunks('P-', P.map(p => [p.id, p.n, p.pr, p.c, p.cr, p.h, p.f || '', p.u ? 1 : 0, p.g || [], p.t || {}])));
 let opt = { hideAll: false };
 const saveO = () => persist(() => store.set('O', JSON.stringify(opt)));
 const saveF = () => persist(() => saveChunks('F-', F.map(f => [f.id, f.n, f.cr])));
@@ -304,7 +312,8 @@ const sessWork = () => S ? now() - S.w.a - sessBreaks() : 0;
 const taskSec = id => sum(allE().filter(e => e.t === id));
 const projSec = pid => { const ids = new Set(T.filter(t => t.p === pid).map(t => t.id)); return sum(allE().filter(e => ids.has(e.t))); };
 const shiftEs = wid => allE().filter(e => e.w === wid);
-const rate = p => { const s = projSec(p.id); return s > 0 ? p.pr / (s / 3600) : 0; };
+const rate = p => { if (p.u) return 0; const s = projSec(p.id); return s > 0 ? p.pr / (s / 3600) : 0; };
+const priceTxt = p => p.u ? 'не указана' : money(p.pr);
 const base = p => p.pr - p.h.reduce((x, h) => x + h[1], 0);
 
 /* ===== Рабочая сессия и задачи ===== */
@@ -346,10 +355,13 @@ function releaseIfIn(pred) { if (S && S.t && pred(S.t)) { closeInterval(); S.t =
 
 /* ===== Проекты, задачи, переименование ===== */
 function newProject(fid = '') {
-  const k = fid || 'x', n = $('#np-n-' + k).value.trim(), pr = num($('#np-p-' + k).value);
+  const k = fid || 'x', n = $('#np-n-' + k).value.trim(), pr = num($('#np-p-' + k).value), fs = $('#np-f-' + k);
+  if (fs) fid = folder(fs.value) ? fs.value : '';
+  const tt = {}; cats().forEach(c => { const el = $('#np-t-' + k + '-' + c.id), v = el ? el.value.trim().slice(0, 60) : ''; if (v) tt[c.id] = v; });
   if (!n) return toast('Впиши название проекта');
-  if (!(pr >= 0)) return toast('Впиши стоимость проекта (можно 0 и поправить потом)');
-  P.push({ id: uid(), n, pr, c: 0, cr: now(), h: [], f: fid }); saveP(); render();
+  const noPrice = $('#np-p-' + k).value.trim() === '';
+  if (!noPrice && !(pr >= 0)) return toast('Цена — это число. Или оставь поле пустым и укажи цену позже.');
+  P.push({ id: uid(), n, pr: noPrice ? 0 : pr, c: 0, cr: now(), h: [], f: fid, u: noPrice ? 1 : 0, g: [], t: tt }); saveP(); newPOpen = false; render();
 }
 function newTask(pid, andGo, src) {
   const el = src ? (src.tagName === 'INPUT' ? src : src.parentNode.querySelector('input')) : $('#nt-' + pid), n = el.value.trim();
@@ -394,7 +406,7 @@ function pagerGo(i, anim = true) {
   tr.style.transform = `translateX(${-i * 100}%)`;
   setFIdx(i);
 }
-function goFolder(i) { pagerGo(i); }
+function goFolder(i) { if (newPOpen && tab === 'proj') { newPOpen = false; render(); } pagerGo(i); }
 // Свайп между папками: страница едет за пальцем, при отпускании доводится до ближайшей
 // слушаем весь экран, а не только ленту, чтобы свайп работал и на пустом месте под короткой папкой
 let statAnim = false;
@@ -408,13 +420,15 @@ function statSwipe(dir, fromDx = 0) { // dir: +1 — следующий пери
   const nw = $('#swp'), app = $('#app');
   Object.assign(ghost.style, { position: 'absolute', top: top + 'px', left: left + 'px', width: W + 'px', margin: '0', pointerEvents: 'none', transition: 'none', transform: `translateX(${fromDx}px)` });
   app.appendChild(ghost);
-  nw.style.transition = 'none'; nw.style.transform = `translateX(${dir * W + fromDx}px)`;
+  ghost.style.opacity = old.style.opacity || '1';
+  nw.style.transition = 'none'; nw.style.transform = `translateX(${dir * W + fromDx}px)`; nw.style.opacity = '0';
   void nw.offsetWidth;
-  const ease = 'transform .34s cubic-bezier(.22,.8,.24,1)';
-  ghost.style.transition = ease; nw.style.transition = ease;
-  ghost.style.transform = `translateX(${-dir * W}px)`; nw.style.transform = 'translateX(0)';
-  const done = () => { if (!statAnim) return; statAnim = false; ghost.remove(); nw.style.transition = ''; nw.style.transform = ''; };
-  nw.addEventListener('transitionend', done, { once: true }); setTimeout(done, 450);
+  const ease = 'transform .38s cubic-bezier(.22,.8,.24,1)';
+  ghost.style.transition = ease + ', opacity .28s ease-out'; nw.style.transition = ease + ', opacity .3s ease-out';
+  ghost.style.transform = `translateX(${-dir * W * .6}px)`; ghost.style.opacity = '0';
+  nw.style.transform = 'translateX(0)'; nw.style.opacity = '1';
+  const done = () => { if (!statAnim) return; statAnim = false; ghost.remove(); nw.style.transition = ''; nw.style.transform = ''; nw.style.opacity = ''; };
+  nw.addEventListener('transitionend', done, { once: true }); setTimeout(done, 500);
 }
 // Свайпы: папки в «Проектах» (лента едет за пальцем) и периоды в «Статистике». Слушаем весь экран.
 function initSwipe() {
@@ -443,7 +457,7 @@ function initSwipe() {
       tr.style.transform = `translateX(calc(${-ci * 100}% + ${dx}px))`;
     } else {
       dx = mx;
-      dx = mx; el.style.transform = `translateX(${dx}px)`;
+      dx = mx; el.style.transform = `translateX(${dx}px)`; el.style.opacity = String(1 - Math.min(.45, Math.abs(dx) / app.clientWidth * .6));
     }
   }, { passive: false });
   const end = () => {
@@ -452,21 +466,21 @@ function initSwipe() {
     const W = app.clientWidth, v = Math.abs(dx) / Math.max(1, Date.now() - t0), go = Math.abs(dx) > W * 0.22 || (v > 0.35 && Math.abs(dx) > 24);
     if (mode === 'p') pagerGo(pgIdx() + (go ? (dx < 0 ? 1 : -1) : 0));
     else if (go) statSwipe(dx < 0 ? 1 : -1, dx);
-    else { el.style.transition = 'transform .28s cubic-bezier(.22,.8,.24,1)'; el.style.transform = ''; }
+    else { el.style.transition = 'transform .28s cubic-bezier(.22,.8,.24,1), opacity .28s'; el.style.transform = ''; el.style.opacity = ''; }
   };
   app.addEventListener('touchend', end); app.addEventListener('touchcancel', end);
 }
 function byFolder(rows) {
   const m = {};
-  rows.forEach(x => { const k = folder(x.p.f) ? x.p.f : ''; const o = m[k] = m[k] || { n: fname(x.p), sec: 0, earned: 0, ps: [] }; o.sec += x.sec; o.earned += x.earned; o.ps.push(x.p.n); });
+  rows.forEach(x => { const k = folder(x.p.f) ? x.p.f : ''; const o = m[k] = m[k] || { n: fname(x.p), sec: 0, psec: 0, earned: 0, ps: [] }; o.sec += x.sec; if (!x.np) o.psec += x.sec; o.earned += x.earned; o.ps.push(x.p.n); });
   return Object.values(m).sort((a, b) => b.sec - a.sec);
 }
 function startRen(k) { ren = k; render(); }
 function doRename(val) {
   if (!ren) return;
-  const [kind, id] = ren.split(':'), n = String(val).trim(), o = kind === 'p' ? proj(id) : kind === 'f' ? folder(id) : task(id);
+  const [kind, id] = ren.split(':'), n = String(val).trim(), o = kind === 'p' ? proj(id) : kind === 'f' ? folder(id) : kind === 'c' ? cats().find(c => c.id === id) : task(id);
   ren = null;
-  if (o && n && n !== o.n) { o.n = n; kind === 'p' ? saveP() : kind === 'f' ? saveF() : saveT(); }
+  if (o && n && n !== o.n) { o.n = n.slice(0, kind === 'c' ? 30 : 100); kind === 'p' ? saveP() : kind === 'f' ? saveF() : kind === 'c' ? saveO() : saveT(); }
   render();
 }
 const renInput = (val, max) => `<input id="ren" value="${esc(val)}" maxlength="${max}" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){ren=null;render()}" onblur="doRename(this.value)">`;
@@ -482,7 +496,7 @@ async function delTask(id) {
   E = E.filter(e => e.t !== id); T = T.filter(x => x.id !== id);
   saveT(); months.forEach(saveM); render();
 }
-function setPrice(pid, v) { const p = proj(pid), x = num(v); if (x >= 0) { p.pr = x; saveP(); } render(); }
+function setPrice(pid, v) { const p = proj(pid), x = num(v); if (String(v).trim() !== '' && x >= 0) { p.pr = x; p.u = 0; saveP(); } render(); }
 function addPay(pid) {
   const p = proj(pid), a = num($('#pay-a').value), note = $('#pay-n').value.trim().slice(0, 60);
   if (!a) return toast('Впиши сумму доплаты');
@@ -493,7 +507,7 @@ function closeProject(pid) {
   const p = proj(pid);
   releaseIfIn(x => (task(x) || {}).p === pid);
   p.c = now(); saveP(); render();
-  toast(`Проект «${p.n}» закрыт.\n${fh(projSec(pid))} за ${money(p.pr)} → ${money(rate(p))}/ч`);
+  toast(p.u ? `Проект «${p.n}» закрыт: ${fh(projSec(pid))}.\nУкажи цену в карточке проекта — тогда посчитается ставка.` : `Проект «${p.n}» закрыт.\n${fh(projSec(pid))} за ${money(p.pr)} → ${money(rate(p))}/ч`);
 }
 function reopenProject(pid) { proj(pid).c = 0; saveP(); render(); }
 async function delProject(pid) {
@@ -568,7 +582,7 @@ async function delShift(id) {
 let lastBk = 0, bkText = null, bkRestore = false;
 function backupData() {
   return JSON.stringify({ app: 'studio-timer', v: 1, at: now(),
-    F: F.map(f => [f.id, f.n, f.cr]), P: P.map(p => [p.id, p.n, p.pr, p.c, p.cr, p.h, p.f || '']), T: T.map(t => [t.id, t.p, t.n, t.d]),
+    F: F.map(f => [f.id, f.n, f.cr]), P: P.map(p => [p.id, p.n, p.pr, p.c, p.cr, p.h, p.f || '', p.u ? 1 : 0, p.g || [], p.t || {}]), T: T.map(t => [t.id, t.p, t.n, t.d]),
     E: E.map(e => [e.id, e.t, e.a, e.b, e.w]), W: W.map(w => [w.id, w.a, w.b, w.k || []]), O: opt, S });
 }
 async function backup() {
@@ -589,7 +603,7 @@ async function restore() {
   let d; try { d = JSON.parse($('#rst').value.trim()); } catch { return toast('Это не похоже на копию: текст повреждён или вставлен не целиком.'); }
   if (!d || d.app !== 'studio-timer' || !Array.isArray(d.P) || !Array.isArray(d.T) || !Array.isArray(d.E)) return toast('Это не копия из этого приложения.');
   if (!(await ask(`Копия от ${fdate(d.at)} ${ftime(d.at)}: проектов ${d.P.length}, задач ${d.T.length}.\n\nВсе текущие данные будут заменены данными из копии.`, 'Восстановить', true))) return;
-  P = d.P.map(r => ({ id: r[0], n: r[1], pr: r[2], c: r[3], cr: r[4], h: r[5] || [], f: r[6] || '' }));
+  P = d.P.map(r => ({ id: r[0], n: r[1], pr: r[2], c: r[3], cr: r[4], h: r[5] || [], f: r[6] || '', u: r[7] ? 1 : 0, g: Array.isArray(r[8]) ? r[8] : [], t: r[9] && typeof r[9] === 'object' ? r[9] : {} }));
   F = (d.F || []).map(r => ({ id: r[0], n: r[1], cr: r[2] }));
   const keep = { autoBk: opt.autoBk };
   opt = Object.assign({ hideAll: false }, keep, d.O || {});
@@ -700,11 +714,12 @@ function periodData() {
     const x = by[pid] = by[pid] || { sec: 0, tasks: {} };
     x.sec += e.b - e.a; x.tasks[e.t] = (x.tasks[e.t] || 0) + e.b - e.a;
   }
-  const rows = Object.keys(by).map(pid => { const p = proj(pid), rt = rate(p); return { p, sec: by[pid].sec, tasks: by[pid].tasks, rt, earned: rt * by[pid].sec / 3600 }; }).sort((x, y) => y.sec - x.sec);
+  const rows = Object.keys(by).map(pid => { const p = proj(pid), rt = rate(p); return { p, np: !!p.u, sec: by[pid].sec, tasks: by[pid].tasks, rt, earned: rt * by[pid].sec / 3600 }; }).sort((x, y) => y.sec - x.sec);
+  const npSec = rows.filter(x => x.np).reduce((a, x) => a + x.sec, 0);
   const sec = rows.reduce((x, y) => x + y.sec, 0), earned = rows.reduce((x, y) => x + y.earned, 0);
   const ws = allW().filter(w => w.a >= r.a && w.a < r.b).sort((x, y) => x.a - y.a);
   const studio = ws.reduce((x, w) => x + wWork(w), 0), breaks = ws.reduce((x, w) => x + brSec(w), 0), nbr = ws.reduce((x, w) => x + (w.k || []).length, 0), wids = new Set(ws.map(w => w.id)), inShift = sum(es.filter(e => wids.has(e.w)));
-  return { r, es, rows, sec, earned, avg: sec > 0 ? earned / (sec / 3600) : 0, ws, studio, breaks, nbr, inShift,
+  return { r, es, rows, sec, earned, npSec, avg: sec - npSec > 0 ? earned / ((sec - npSec) / 3600) : 0, ws, studio, breaks, nbr, inShift,
     closed: P.filter(p => p.c >= r.a && p.c < r.b), byRate: rows.filter(x => x.rt > 0).slice().sort((x, y) => y.rt - x.rt) };
 }
 function shiftInfo(w) {
@@ -716,42 +731,54 @@ function shiftInfo(w) {
 function reportText() {
   const D = periodData(), r = D.r;
   let t = `ОТЧЁТ ПО РАБОТЕ — ${sMode === 'week' ? 'неделя' : 'месяц'}: ${r.label} (${fdate(r.a)} – ${fdate(r.last)})\n`;
-  t += `Валюта: рубли. Рабочая сессия = время от старта до завершения за вычетом перерывов (во время перерыва общий таймер и таймер задачи стоят). Работа над задачами = время, когда шёл таймер конкретной задачи. Ставка проекта = полная стоимость ÷ все часы работы над задачами проекта. «Заработано за период» = часы по задачам за период × ставка проекта. У незакрытых проектов ставка предварительная. Суммы за отдельные промежутки посчитаны по текущей ставке проекта.\n\n`;
+  t += `Валюта: рубли. Рабочая сессия = время от старта до завершения за вычетом перерывов (во время перерыва общий таймер и таймер задачи стоят). Работа над задачами = время, когда шёл таймер конкретной задачи. Ставка проекта = полная стоимость ÷ все часы работы над задачами проекта. «Заработано за период» = часы по задачам за период × ставка проекта. ВАЖНО: у незавершённых проектов (статус «в работе») ставка НЕ финальная — проект ещё не закрыт, часы будут добавляться, и итоговая ставка, скорее всего, снизится. Поэтому «заработано» по таким проектам — это предварительная оценка по текущей ставке, а не окончательные деньги. Окончательные цифры — только у закрытых проектов. Суммы за отдельные промежутки посчитаны по текущей ставке проекта. Теги проекта (#…) — например, имя клиента.\n\n`;
   t += `ИТОГО ЗА ПЕРИОД\n`;
   t += `Рабочих сессий: ${D.ws.length}; время в рабочих сессиях без перерывов: ${hd(D.studio)} ч (${fh(D.studio)})\n`;
   t += `Перерывы: ${D.nbr} шт., всего ${hd(D.breaks)} ч (${fh(D.breaks)})${D.nbr ? ', в среднем ' + fh(D.breaks / D.nbr) : ''}\n`;
   t += `Работа над задачами: ${hd(D.sec)} ч (${fh(D.sec)})${D.studio ? `; из них внутри сессий ${hd(D.inShift)} ч = ${pct(D.inShift, D.studio)}% времени сессий` : ''}\n`;
-  t += `Заработано: ${money(D.earned)}\nСредняя ставка за час работы над задачами: ${money(D.avg)}/ч\n`;
+  const eFin = D.rows.filter(x => x.p.c && !x.np).reduce((a, x) => a + x.earned, 0), ePre = D.earned - eFin;
+  t += `Заработано: ${money(D.earned)}${ePre > 0 ? ` — из них окончательно (закрытые проекты): ${money(eFin)}; предварительно (незавершённые проекты, ставка ещё снизится): ${money(ePre)}` : ' (все проекты периода закрыты — суммы окончательные)'}\nСредняя ставка за час работы над задачами: ${money(D.avg)}/ч${ePre > 0 ? ' (предварительная — в периоде есть незавершённые проекты)' : ''}${D.npSec ? ' (без учёта проектов без цены)' : ''}\n`;
+  if (D.npSec) t += `Время в проектах, у которых ещё не указана цена (не учтено в заработке): ${hd(D.npSec)} ч (${fh(D.npSec)})\n`;
   if (D.studio) t += `Заработано в пересчёте на час рабочих сессий: ${money(D.earned / (D.studio / 3600))}/ч\n`;
   t += `Закрыто проектов: ${D.closed.length}${D.closed.length ? ' на сумму ' + money(D.closed.reduce((x, p) => x + p.pr, 0)) + ' (' + D.closed.map(p => p.n).join(', ') + ')' : ''}\n`;
   if (D.rows.length) {
     if (F.length) {
       t += `\nПО ПАПКАМ\n`;
-      byFolder(D.rows).forEach(x => t += `- ${x.n}: ${hd(x.sec)} ч, заработано ${money(x.earned)}, ставка ${x.sec ? money(x.earned / (x.sec / 3600)) : '—'}/ч; проекты: ${x.ps.join(', ')}\n`);
+      byFolder(D.rows).forEach(x => t += `- ${x.n}: ${hd(x.sec)} ч, заработано ${money(x.earned)}, ставка ${x.psec ? money(x.earned / (x.psec / 3600)) + '/ч' : '—'}; проекты: ${x.ps.join(', ')}\n`);
+    }
+    const tagMap = {};
+    D.rows.forEach(x => projTags(x.p).map(tagLabel).forEach(g => { const o = tagMap[g] = tagMap[g] || { sec: 0, psec: 0, fin: 0, pre: 0, ps: [] }; o.sec += x.sec; if (!x.np) o.psec += x.sec; if (x.p.c) o.fin += x.earned; else o.pre += x.earned; o.ps.push(x.p.n); }));
+    const catIdx = g => { const i = cats().findIndex(c => g.startsWith(c.n + ': ')); return i < 0 ? 999 : i; };
+    const tagList = Object.entries(tagMap).sort((a, b) => catIdx(a[0]) - catIdx(b[0]) || b[1].sec - a[1].sec);
+    if (tagList.length) {
+      t += `\nПО ТЕГАМ (сгруппировано по категориям; проект учитывается в каждом своём теге)\n`;
+      tagList.forEach(([g, o]) => t += `- ${g}: ${hd(o.sec)} ч, заработано ${o.psec ? money(o.fin + o.pre) : '— (цена не указана)'}${o.pre > 0 ? ` (из них предварительно ≈${money(o.pre)} — есть незавершённые проекты)` : ''}, ставка ${o.psec ? money((o.fin + o.pre) / (o.psec / 3600)) + '/ч' : '—'}; проекты: ${o.ps.join(', ')}\n`);
     }
     t += `\nПРОЕКТЫ\n`;
     D.rows.forEach((x, i) => {
       const p = x.p;
-      t += `\n${i + 1}. ${p.n} [папка: ${fname(p)}; ${p.c ? 'закрыт ' + fdate(p.c) : 'в работе'}]\n   Стоимость: ${money(p.pr)}`;
+      t += `\n${i + 1}. ${p.n} [папка: ${fname(p)}; ${p.c ? 'закрыт ' + fdate(p.c) : 'в работе — НЕ ЗАВЕРШЁН'}]${projTags(p).length ? '\n   Теги: ' + tagsTxt(p) : ''}\n   Стоимость: ${priceTxt(p)}`;
       if (p.h.length) t += ` (изначально ${money(base(p))}; ` + p.h.map(h => `${h[1] > 0 ? '+' : ''}${money(h[1])} ${fdate(h[0])}${h[2] ? ' «' + h[2] + '»' : ''}`).join('; ') + ')';
       t += `\n   Часов по проекту всего: ${hd(projSec(p.id))}; из них за период: ${hd(x.sec)}\n`;
-      t += `   Ставка: ${money(x.rt)}/ч (${p.c ? 'итоговая' : 'предварительная'})\n   Заработано за период: ${money(x.earned)}\n   Задачи (часы за период / всего по задаче):\n`;
+      t += x.np ? `   Ставка: — (цена не указана)\n   Заработано за период: — (цена не указана)\n` : (p.c ? `   Ставка: ${money(x.rt)}/ч (итоговая — проект закрыт)\n   Заработано за период: ${money(x.earned)} (окончательно)\n`
+        : `   Ставка: ${money(x.rt)}/ч — ПРЕДВАРИТЕЛЬНАЯ: проект не завершён, часы ещё добавятся, итоговая ставка будет ниже\n   Заработано за период: ≈${money(x.earned)} (оценка по текущей ставке, не окончательные деньги)\n`);
+      t += `   Задачи (часы за период / всего по задаче):\n`;
       T.filter(tk => tk.p === p.id && (x.tasks[tk.id] || 0) > 0).sort((a, b) => x.tasks[b.id] - x.tasks[a.id])
         .forEach(tk => t += `   - ${tk.n} [${tk.d ? 'готова ' + fdate(tk.d) : 'не завершена'}]: ${hd(x.tasks[tk.id])} ч / ${hd(taskSec(tk.id))} ч\n`);
     });
   }
   if (D.byRate.length > 1) {
     t += `\nРЕЙТИНГ ПРОЕКТОВ ПО СТАВКЕ (от дорогих к дешёвым)\n`;
-    D.byRate.forEach((x, i) => t += `${i + 1}. ${x.p.n} (${fname(x.p)}) — ${money(x.rt)}/ч${x.p.c ? '' : ' (предв.)'}\n`);
+    D.byRate.forEach((x, i) => t += `${i + 1}. ${x.p.n} (${fname(x.p)}${projTags(x.p).length ? '; ' + tagsTxt(x.p) : ''}) — ${money(x.rt)}/ч${x.p.c ? ' (итоговая)' : ' (предварительная — проект не завершён)'}\n`);
   }
   const allP = P.slice().sort((x, y) => (!!x.c - !!y.c) || x.cr - y.cr);
   if (allP.length) {
     t += `\nСТАВКИ ВСЕХ ПРОЕКТОВ (на ${fdate(now())} ${ftime(now())})\n`;
     allP.forEach(p => {
       const s2 = projSec(p.id);
-      t += `- ${p.n} [${fname(p)}; ${p.c ? 'закрыт ' + fdate(p.c) : 'в работе'}]: стоимость ${money(p.pr)}` +
+      t += `- ${p.n} [${fname(p)}; ${p.c ? 'закрыт ' + fdate(p.c) : 'в работе, не завершён'}]${projTags(p).length ? ' {' + tagsTxt(p) + '}' : ''}: стоимость ${priceTxt(p)}` +
         (p.h.length ? ` (изначально ${money(base(p))}, доплаты: ` + p.h.map(h => `${h[1] > 0 ? '+' : ''}${money(h[1])} ${fdate(h[0])}${h[2] ? ' «' + h[2] + '»' : ''}`).join('; ') + ')' : '') +
-        `; часов всего ${hd(s2)}; ставка ${s2 ? money(rate(p)) + '/ч ' + (p.c ? '(итоговая)' : '(предварительная)') : '— (часов ещё нет)'}\n`;
+        `; часов всего ${hd(s2)}; ставка ${p.u ? '— (цена не указана)' : s2 ? money(rate(p)) + '/ч ' + (p.c ? '(итоговая)' : '(предварительная — проект не завершён, будет ниже)') : '— (часов ещё нет)'}\n`;
     });
   }
   if (D.ws.length) {
@@ -772,7 +799,7 @@ function reportText() {
     });
     D.es.forEach(e => {
       const p = proj(pidOf(e)), rt = p ? rate(p) : 0, d = e.b - e.a, m = rt * d / 3600;
-      add(e.a, { a: e.a, o: 1, sec: d, m, s: `${ftime(e.a)}–${ftime(e.b)} (${hm(d)}) ${p ? fname(p) + ' / ' + p.n : '?'} / ${tname(e.t)} — ${money(rt)}/ч → ${money(m)}${e.w ? '' : ' [добавлено вручную, время начала условное]'}` });
+      add(e.a, { a: e.a, o: 1, sec: d, m, s: `${ftime(e.a)}–${ftime(e.b)} (${hm(d)}) ${p ? fname(p) + ' / ' + p.n : '?'} / ${tname(e.t)} — ${p && p.u ? 'цена не указана' : money(rt) + '/ч → ' + (p && !p.c ? '≈' + money(m) + ' (предв.)' : money(m))}${e.w ? '' : ' [добавлено вручную, время начала условное]'}` });
     });
     let runSec = 0, runM = 0;
     Object.keys(days).sort((x, y) => x - y).forEach(d => {
@@ -783,10 +810,10 @@ function reportText() {
     });
   }
   if (D.es.length) {
-    t += `\nВСЕ ЗАПИСИ ТАБЛИЦЕЙ (CSV, разделитель «;»)\nдата;начало;конец;минут;папка;проект;задача;ставка_руб_в_час;сумма_руб;источник\n`;
+    t += `\nВСЕ ЗАПИСИ ТАБЛИЦЕЙ (CSV, разделитель «;»)\nдата;начало;конец;минут;папка;проект;теги;задача;ставка_руб_в_час;статус_ставки;сумма_руб;источник\n`;
     D.es.slice().sort((x, y) => x.a - y.a).forEach(e => {
       const p = proj(pidOf(e)), rt = p ? rate(p) : 0, d = e.b - e.a;
-      t += [fdate(e.a), ftime(e.a), ftime(e.b), Math.round(d / 60), p ? fname(p) : '', p ? p.n : '', tname(e.t), Math.round(rt), Math.round(rt * d / 3600), e.w ? 'сессия' : 'вручную']
+      t += [fdate(e.a), ftime(e.a), ftime(e.b), Math.round(d / 60), p ? fname(p) : '', p ? p.n : '', p ? tagsTxt(p, ' | ') : '', tname(e.t), p && p.u ? '' : Math.round(rt), !p || p.u ? 'нет цены' : p.c ? 'итоговая' : 'предварительная', p && p.u ? '' : Math.round(rt * d / 3600), e.w ? 'сессия' : 'вручную']
         .map(v => String(v).replace(/;/g, ',')).join(';') + '\n';
     });
   }
@@ -875,7 +902,9 @@ function pickerHTML() {
   return h;
 }
 const projectForm = (fid = '') => `<input id="np-n-${fid || 'x'}" placeholder="Название проекта" maxlength="80">
-  <input id="np-p-${fid || 'x'}" type="text" inputmode="decimal" placeholder="Стоимость целиком, ₽">
+  <input id="np-p-${fid || 'x'}" type="text" inputmode="decimal" placeholder="Цена, ₽ — можно позже">
+  ${catFields('np-t-' + (fid || 'x') + '-')}${catLists()}` +
+  (F.length ? `<div class="lbl" style="margin:2px 0 0 4px">Папка</div><select id="np-f-${fid || 'x'}"><option value="">Без папки</option>${F.map(f => `<option value="${f.id}" ${f.id === fid ? 'selected' : ''}>${esc(f.n)}</option>`).join('')}</select>` : '') + `
   <button class="btn" onclick="newProject('${fid}')">Создать проект</button>`;
 
 function viewHome() {
@@ -980,7 +1009,7 @@ function appCard() {
     <label class="tgl"><input type="checkbox" ${opt.full === false ? '' : 'checked'} onchange="opt.full=this.checked;saveO();setFull(this.checked);render()" aria-label="Во весь экран"><i></i></label></div></div>`;
 }
 function viewSettings() {
-  return `<a class="back" href="#" onclick="settings=false;render();return false">‹ Назад</a><h2>Настройки</h2>` + appCard() + foldersCard() + backupCard() + chatBkCard() +
+  return `<a class="back" href="#" onclick="settings=false;render();return false">‹ Назад</a><h2>Настройки</h2>` + appCard() + foldersCard() + catsCard() + backupCard() + chatBkCard() +
     `<div class="card"><div class="lbl">Где хранятся данные</div>` + (cloud
       ? `<div class="hint" style="margin-top:6px">Данные привязаны к твоему аккаунту Telegram и хранятся в облаке Telegram.</div>`
       : `<div class="hint" style="margin-top:6px;color:var(--amb)">Связь с Telegram не установлена — данные сейчас хранятся только на этом устройстве.</div><div class="hint" style="margin-top:6px">${!tg ? 'Не загрузился модуль Telegram (telegram-web-app.js). Открой приложение через кнопку бота; если не помогло — проверь интернет/VPN и обнови Telegram.' : !tg.initData ? 'Приложение открыто не через кнопку бота.' : 'Версия Telegram устарела (' + esc(tg.version || '?') + '), обнови приложение.'}</div>`) + `</div>` + resetCard();
@@ -989,24 +1018,69 @@ function projCard(p, showF) {
   const s = projSec(p.id), done = T.filter(t => t.p === p.id && t.d).length, all = T.filter(t => t.p === p.id).length;
   return `<button class="card pcard" onclick="cur='${p.id}';render()">
     <div class="row"><span>${dot(colorOf(p.id))}<b>${esc(p.n)}</b></span>${p.c ? '<span class="badge done">закрыт</span>' : '<span class="badge">в работе</span>'}</div>
-    <div class="row" style="margin-top:10px"><span class="num">${money(p.pr)}</span><span class="num" style="color:${s ? 'var(--acc)' : 'var(--dim)'}">${s ? money(rate(p)) + '/ч' : '—'}</span></div>
+    <div class="row" style="margin-top:10px">${p.u ? '<span style="color:var(--amb)">цена не указана</span>' : `<span class="num">${money(p.pr)}</span>`}<span class="num" style="color:${s && !p.u ? 'var(--acc)' : 'var(--dim)'}">${s && !p.u ? money(rate(p)) + '/ч' : '—'}</span></div>
     <div class="hbar"><i style="width:${all ? done / all * 100 : 0}%;background:${colorOf(p.id)}"></i></div>
+    ${projTags(p).length ? `<div class="tags" style="margin-top:8px">${projTags(p).map(x => `<span class="tag">${esc(tagLabel(x))}</span>`).join('')}</div>` : ''}
     <div class="row hint" style="margin-top:6px"><span class="num">${fh(s)}${showF && folder(p.f) ? `</span><span>📁 ${esc(folder(p.f).n)}` : ''}</span><span class="num">задачи ${done}/${all}</span></div></button>`;
 }
-function projPage(list, fid) {
-  const rf = folder(fid);
-  let h = list.length ? list.map(p => projCard(p, !fid)).join('') : `<div class="hint center" style="padding:28px 0 12px">${fid ? 'В этой папке пока нет проектов' : 'Пока нет проектов'}</div>`;
-  h += `<details class="card" ${list.length ? '' : 'open'}><summary>Новый проект${rf ? ' в «' + esc(rf.n) + '»' : ''}</summary><div style="margin-top:10px">${projectForm(rf ? fid : '')}</div></details>`;
+const cats = () => opt.tc || [];
+const catName = id => (cats().find(c => c.id === id) || {}).n;
+// все теги проекта: по категориям + старые без категории
+const projTags = p => cats().filter(c => p.t && String(p.t[c.id] || '').trim()).map(c => ({ c: c.n, v: p.t[c.id] })).concat((p.g || []).map(v => ({ c: '', v })));
+const tagLabel = x => x.c ? `${x.c}: ${x.v}` : '#' + x.v;
+const tagsTxt = (p, sep = '; ') => projTags(p).map(tagLabel).join(sep);
+const catValues = id => [...new Set(P.map(p => p.t && p.t[id]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru'));
+const catLists = () => cats().map(c => `<datalist id="tl-${c.id}">${catValues(c.id).map(v => `<option value="${esc(v)}">`).join('')}</datalist>`).join('');
+const catFields = (pref, p) => cats().map(c => `<label class="tf"><span>${esc(c.n)}:</span><input id="${pref}${c.id}" list="tl-${c.id}" autocomplete="off" maxlength="60" value="${esc((p && p.t && p.t[c.id]) || '')}"${p ? ` onchange="setTag('${p.id}','${c.id}',this.value)"` : ''}></label>`).join('');
+function setTag(pid, cid, v) { const p = proj(pid); p.t = p.t || {}; v = String(v).trim().slice(0, 60); if (v) p.t[cid] = v; else delete p.t[cid]; saveP(); render(); }
+function addCat() {
+  const el = $('#nc'), n = el.value.trim().slice(0, 30); if (!n) return el.focus();
+  if (cats().some(c => c.n.toLowerCase() === n.toLowerCase())) return toast('Такая категория уже есть');
+  opt.tc = cats().concat([{ id: uid(), n }]); saveO(); render(); const e2 = $('#nc'); if (e2) e2.focus();
+}
+function moveCat(id, d) { const a = cats().slice(), i = a.findIndex(c => c.id === id), j = i + d; if (i < 0 || j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; opt.tc = a; saveO(); render(); }
+async function delCat(id) {
+  const c = cats().find(x => x.id === id), used = P.filter(p => p.t && p.t[id]).length;
+  if (!(await ask(`Удалить категорию «${c.n}»?${used ? `\n\nЕё значения пропадут у ${used} ${used === 1 ? 'проекта' : 'проектов'}.` : ''}`, 'Удалить', true))) return;
+  opt.tc = cats().filter(x => x.id !== id); P.forEach(p => { if (p.t && p.t[id]) delete p.t[id]; }); saveO(); if (used) saveP(); render();
+}
+function catsCard() {
+  const dis = 'disabled style="opacity:.2"', a = cats();
+  let h = `<div class="card"><div class="lbl" style="margin-bottom:4px">Категории тегов</div>`;
+  h += a.length ? a.map((c, i) => `<div class="line">${ren === 'c:' + c.id ? renInput(c.n, 30)
+    : `<span>${esc(c.n)} <span class="hint num">${catValues(c.id).length}</span></span><span style="white-space:nowrap">
+      <button class="x" onclick="moveCat('${c.id}',-1)" ${i ? '' : dis} aria-label="Выше">↑</button><button class="x" onclick="moveCat('${c.id}',1)" ${i < a.length - 1 ? '' : dis} aria-label="Ниже">↓</button><button class="x" onclick="startRen('c:${c.id}')" aria-label="Переименовать">✎</button><button class="x" onclick="delCat('${c.id}')" aria-label="Удалить" style="color:var(--red)">✕</button></span>`}</div>`).join('')
+    : '<div class="hint" style="padding:8px 0">Категорий пока нет. Каждая категория — отдельное поле при создании проекта.</div>';
+  return h + `<div class="inl" style="margin-top:8px"><input id="nc" placeholder="Название категории" maxlength="30" onkeydown="if(event.key==='Enter')addCat()"><button class="btn sm" onclick="addCat()">Создать</button></div></div>`;
+}
+const parseTags = v => [...new Set(String(v || '').split(/[,;\n]+/).map(x => x.trim().replace(/^#/, '').slice(0, 30)).filter(Boolean))].slice(0, 12);
+const allTags = () => [...new Set(P.flatMap(p => p.g || []))].sort((a, b) => a.localeCompare(b, 'ru'));
+const tagChips = (g, del) => (g || []).map((x, i) => `<span class="tag">#${esc(x)}${del ? `<button onclick="${del}(${i})" aria-label="Убрать тег">✕</button>` : ''}</span>`).join('');
+function addTag(pid) {
+  const el = $('#tg-' + pid), add = parseTags(el.value); if (!add.length) return el.focus();
+  const p = proj(pid); p.g = [...new Set([...(p.g || []), ...add])].slice(0, 12); saveP(); render();
+  const n = $('#tg-' + pid); if (n) n.focus();
+}
+function delTag(pid, i) { const p = proj(pid); p.g.splice(i, 1); saveP(); render(); }
+let newPOpen = false;
+function openNewProj() {
+  newPOpen = true; render();
+  const el = $('#pager .page:nth-child(' + (fIdx + 1) + ') input[id^="np-n-"]'); if (el) { el.focus(); $('#app').scrollTop = 0; }
+}
+function projPage(list, fid, top) {
+  const rf = folder(fid), sub = rf ? ' в «' + esc(rf.n) + '»' : '';
+  let h = top ? `<div class="card" style="border-color:rgba(200,240,74,.35)"><div class="row" style="margin-bottom:8px"><span class="lbl">Новый проект${sub}</span><button class="x" onclick="newPOpen=false;render()" aria-label="Закрыть">✕</button></div>${projectForm(rf ? fid : '')}</div>` : '';
+  h += list.length ? list.map(p => projCard(p, !fid)).join('') : `<div class="hint center" style="padding:28px 0 12px">${fid ? 'В этой папке пока нет проектов' : 'Пока нет проектов'}${top ? '' : '<br>Нажми «+ Проект» вверху, чтобы создать'}</div>`;
   return h;
 }
 function viewProjects() {
   const sorted = P.slice().sort((x, y) => (!!x.c - !!y.c) || (x.c ? y.c - x.c : y.cr - x.cr));
   const tabs = projTabs();
   if (fIdx >= tabs.length) fIdx = 0;
-  let h = '<h2>Проекты</h2>';
+  let h = `<div class="row" style="margin:18px 60px 10px 0;min-height:40px"><h2 style="margin:0">Проекты</h2>${newPOpen ? '' : '<button class="btn sm" style="margin:0;padding:9px 14px;font-size:15px" onclick="openNewProj()">+ Проект</button>'}</div>`;
   if (tabs.length > 1) h += `<div class="ftabs">${tabs.map((t, i) => `<button class="ftab ${i === fIdx ? 'on' : ''}" onclick="goFolder(${i})">${esc(t.n)}<span>${t.c}</span></button>`).join('')}</div>`;
   const list = t => t.id === '' ? sorted : t.id === '-' ? sorted.filter(p => !folder(p.f)) : sorted.filter(p => p.f === t.id);
-  h += `<div class="pager" id="pager"><div class="track" style="transform:translateX(${-fIdx * 100}%)">` + tabs.map(t => `<section class="page">${projPage(list(t), t.id)}</section>`).join('') + '</div></div>';
+  h += `<div class="pager" id="pager"><div class="track" style="transform:translateX(${-fIdx * 100}%)">` + tabs.map((t, i) => `<section class="page">${projPage(list(t), t.id, newPOpen && i === fIdx)}</section>`).join('') + '</div></div>';
   return h;
 }
 function viewProject(p) {
@@ -1016,16 +1090,19 @@ function viewProject(p) {
     (ren === 'p:' + p.id ? `<h2>${renInput(p.n, 80)}</h2>`
       : `<h2>${dot(c)}${esc(p.n)} <button class="pen" onclick="startRen('p:${p.id}')">✎</button></h2>`) +
     (p.c ? `<span class="badge done">закрыт ${fdate(p.c)}</span>` : '<span class="badge">в работе</span>') +
-    `<div class="grid">${kpi('Время', hd(s) + ' ч', fh(s))}${kpi(p.c ? 'Итоговая ставка' : 'Ставка сейчас', s ? money(rate(p)) : '—', 'в час')}
-      ${kpi('Стоимость', money(p.pr), p.h.length ? 'доплат: ' + p.h.length : '')}${kpi('Задачи', done + '/' + ts.length, ts.length ? pct(done, ts.length) + '% готово' : '')}</div>
+    `<div class="grid">${kpi('Время', hd(s) + ' ч', fh(s))}${kpi(p.c ? 'Итоговая ставка' : 'Ставка сейчас', s && !p.u ? money(rate(p)) : '—', p.u ? 'нужна цена' : p.c ? 'в час, итоговая' : 'в час, предварительная')}
+      ${kpi('Стоимость', p.u ? '—' : money(p.pr), p.u ? 'не указана' : p.h.length ? 'доплат: ' + p.h.length : '')}${kpi('Задачи', done + '/' + ts.length, ts.length ? pct(done, ts.length) + '% готово' : '')}</div>
+    ${cats().length || (p.g || []).length ? `<div class="card"><div class="lbl" style="margin-bottom:6px">Теги</div>${catFields('pt-' + p.id + '-', p)}${catLists()}
+      ${(p.g || []).length ? `<div class="hint" style="margin:6px 0 6px">Без категории:</div><div class="tags">${tagChips(p.g, `delTag.bind(null,'${p.id}')`)}</div>` : ''}</div>` : ''}
     <div class="card"><div class="lbl">Папка</div><select onchange="setFolder('${p.id}',this.value)" style="margin-bottom:0"><option value="">Без папки</option>${F.map(f => `<option value="${f.id}" ${p.f === f.id ? 'selected' : ''}>${esc(f.n)}</option>`).join('')}</select></div>
     <div class="card"><div class="lbl">Стоимость, ₽</div>
-      <input type="text" inputmode="decimal" value="${p.pr}" onchange="setPrice('${p.id}',this.value)" class="num">
+      <input type="text" inputmode="decimal" value="${p.u ? '' : p.pr}" placeholder="Впиши цену, ₽" onchange="setPrice('${p.id}',this.value)" class="num">
+      ${p.u ? '<div class="hint" style="color:var(--amb);margin-bottom:6px">Пока цены нет, время считается, но проект не попадает в заработок и ставки. Впишешь цену — всё пересчитается.</div>' : ''}
       ${p.h.length ? `<div class="hint" style="margin-bottom:4px">Изначально ${money(base(p))}</div>` + p.h.map((x, i) => `<div class="line"><span><span class="num" style="color:${x[1] > 0 ? 'var(--acc)' : 'var(--red)'}">${x[1] > 0 ? '+' : ''}${money(x[1])}</span> <span class="hint">${fdate(x[0])}${x[2] ? ' · ' + esc(x[2]) : ''}</span></span><button class="x" onclick="delPay('${p.id}',${i})">✕</button></div>`).join('') : ''}
-      <details><summary>Доплата</summary><div style="margin-top:8px">
+      ${p.u ? '' : `<details><summary>Доплата</summary><div style="margin-top:8px">
         <input id="pay-a" type="text" inputmode="decimal" placeholder="Сумма, ₽ (минус — если вычли)">
         <input id="pay-n" placeholder="За что (необязательно)" maxlength="60">
-        <button class="btn alt" onclick="addPay('${p.id}')">Добавить</button></div></details></div>
+        <button class="btn alt" onclick="addPay('${p.id}')">Добавить</button></div></details>`}</div>
     <div class="card"><div class="lbl" style="margin-bottom:4px">Задачи</div>`;
   if (!ts.length) h += '<div class="hint" style="padding:8px 0">Пока нет задач</div>';
   for (const t of ts) {
@@ -1067,18 +1144,20 @@ function viewStats() {
   let h = `<h2>Статистика</h2><div class="seg"><button class="${sMode === 'week' ? 'on' : ''}" onclick="sMode='week';sOff=0;report=null;render()">Неделя</button><button class="${sMode === 'month' ? 'on' : ''}" onclick="sMode='month';sOff=0;report=null;render()">Месяц</button></div>
     <div id="swp"><div class="per"><button onclick="statSwipe(-1)" aria-label="Назад">‹</button><b>${r.label}</b><button onclick="statSwipe(1)" aria-label="Вперёд">›</button></div>
     <div class="card"><div class="lbl">Заработано</div><div class="big" style="font-size:40px;margin-top:6px">${money(D.earned)}</div>
-      ${D.closed.length ? `<div class="hint">закрыто проектов: ${D.closed.length} на ${money(D.closed.reduce((x, p) => x + p.pr, 0))}</div>` : ''}</div>
+      ${D.closed.length ? `<div class="hint">закрыто проектов: ${D.closed.length} на ${money(D.closed.reduce((x, p) => x + p.pr, 0))}</div>` : ''}
+      ${(() => { const pre = D.rows.filter(x => !x.p.c && !x.np).reduce((a, x) => a + x.earned, 0); return pre > 0 ? `<div class="hint">из них ≈${money(pre)} — предварительно: проекты не завершены, ставка ещё снизится</div>` : ''; })()}
+      ${D.npSec ? `<div class="hint" style="color:var(--amb)">${fh(D.npSec)} — в проектах без цены, не учтено</div>` : ''}</div>
     <div class="grid">${kpi('В задачах', hd(D.sec) + ' ч', fh(D.sec))}${kpi('Ставка', money(D.avg), 'в час работы')}
       ${kpi('В сессиях', hd(D.studio) + ' ч', 'сессий: ' + D.ws.length + (D.nbr ? ' · ☕ ' + fh(D.breaks) : ''))}${kpi('Полезно', pct(D.inShift, D.studio) + '%', D.studio ? money(D.earned / (D.studio / 3600)) + '/ч за время сессий' : 'нет сессий')}</div>`;
   h += dayCols(D);
   if (D.rows.length) {
     h += `<div class="card"><div class="lbl">Куда ушло время</div><div class="stack">${D.rows.map(x => `<i style="flex:${x.sec};background:${colorOf(x.p.id)}"></i>`).join('')}</div>` +
-      D.rows.map(x => `<div class="line"><span>${dot(colorOf(x.p.id))}${esc(x.p.n)}</span><span class="num"><span class="hint">${pct(x.sec, D.sec)}% · </span>${hd(x.sec)} ч · ${money(x.earned)}</span></div>`).join('') + '</div>';
+      D.rows.map(x => `<div class="line"><span>${dot(colorOf(x.p.id))}${esc(x.p.n)}</span><span class="num"><span class="hint">${pct(x.sec, D.sec)}% · </span>${hd(x.sec)} ч · ${x.np ? '<span style="color:var(--amb)">без цены</span>' : money(x.earned)}</span></div>`).join('') + '</div>';
   }
   if (F.length && D.rows.length) {
     const fs = byFolder(D.rows);
     h += `<div class="card"><div class="lbl" style="margin-bottom:4px">По папкам</div>` + fs.map(x => `<div style="padding:9px 0"><div class="row"><span>📁 ${esc(x.n)}</span><span class="num">${hd(x.sec)} ч · ${money(x.earned)}</span></div>
-      <div class="row hint" style="margin-top:2px"><span>${pct(x.sec, D.sec)}% времени</span><span class="num">${x.sec ? money(x.earned / (x.sec / 3600)) + '/ч' : ''}</span></div>
+      <div class="row hint" style="margin-top:2px"><span>${pct(x.sec, D.sec)}% времени</span><span class="num">${x.psec ? money(x.earned / (x.psec / 3600)) + '/ч' : ''}</span></div>
       <div class="hbar"><i style="width:${pct(x.sec, D.sec)}%;background:var(--tx)"></i></div></div>`).join('') + '</div>';
   }
   if (D.byRate.length) {
