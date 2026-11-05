@@ -307,7 +307,7 @@ let queue = Promise.resolve();
 const persist = fn => { queue = queue.then(fn).catch(e => toast('Ошибка сохранения: ' + ((e && e.message) || e))); };
 const saveP = () => persist(() => saveChunks('P-', P.map(p => [p.id, p.n, p.pr, p.c, p.cr, p.h, p.f || '', p.u ? 1 : 0, p.g || [], p.t || {}, p.pp || 0, p.wt || 0, p.cl ?? -1])));
 // настройки по умолчанию: вкладки «Все» и «Завершённые» видны, режим «В ожидании» включён, полный экран
-const DEF_OPT = () => ({ hideAll: false, hideDone: false, noWait: false, full: true, folderCol: false, plainTags: false });
+const DEF_OPT = () => ({ hideAll: false, hideDone: false, noWait: false, full: true, folderCol: true, plainTags: true });
 let opt = DEF_OPT();
 const saveO = () => persist(() => store.set('O', JSON.stringify(opt)));
 const saveF = () => persist(() => saveChunks('F-', F.map(f => [f.id, f.n, f.cr, f.cl ?? -1])));
