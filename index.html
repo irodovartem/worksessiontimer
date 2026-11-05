@@ -121,7 +121,16 @@ details.sw summary{text-align:center;padding:8px}
 .tf input{margin:0;border:0;background:none;padding-left:4px}
 .tf input:focus{border:0}
 .tags{display:flex;flex-wrap:wrap;gap:6px}
-.tag{display:inline-flex;align-items:center;gap:2px;font-size:12px;padding:3px 9px;border-radius:20px;background:rgba(139,124,255,.14);color:#b6acff;white-space:nowrap}
+.tag{display:inline-flex;align-items:center;gap:2px;font-size:12px;padding:3px 9px;border-radius:20px;background:var(--s2);color:var(--mut);white-space:nowrap}
+.cpk{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.cpk button{width:30px;height:30px;border-radius:50%;border:0;padding:0;box-shadow:0 0 0 2px var(--s1)}
+.cpk button.on{box-shadow:0 0 0 2px var(--s1),0 0 0 4px var(--tx)}
+details.cdet summary{display:flex;justify-content:space-between;align-items:center;margin:0;color:inherit}
+details.cdet summary::before{content:none}
+details.cdet summary::after{content:'›';color:var(--dim);font-size:20px;line-height:1;transition:transform .2s}
+details.cdet[open] summary::after{transform:rotate(90deg)}
+details.cdet summary .dot{margin:0 10px 0 auto}
+.cdot{width:18px;height:18px;border-radius:50%;border:0;padding:0;vertical-align:-3px;margin-right:8px}
 .tag button{border:0;background:none;color:inherit;opacity:.7;font-size:11px;padding:0 0 0 4px}
 .lg{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:0}
 .acbox{position:fixed;z-index:70;background:#1a1a20;border:1px solid var(--line);border-radius:12px;max-height:220px;overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.5);padding:4px}
@@ -266,8 +275,8 @@ async function load() {
     if (k === 'B') { lastBk = +d || 0; continue; }
     if (k === 'O') { opt = Object.assign(opt, d); continue; }
     cache[k] = s;
-    if (k.startsWith('P-')) d.forEach(r => P.push({ id: r[0], n: r[1], pr: r[2], c: r[3], cr: r[4], h: r[5] || [], f: r[6] || '', u: r[7] ? 1 : 0, g: Array.isArray(r[8]) ? r[8] : [], t: r[9] && typeof r[9] === 'object' ? r[9] : {}, pp: +r[10] || 0, wt: +r[11] || 0 }));
-    else if (k.startsWith('F-')) d.forEach(r => F.push({ id: r[0], n: r[1], cr: r[2] }));
+    if (k.startsWith('P-')) d.forEach(r => P.push({ id: r[0], n: r[1], pr: r[2], c: r[3], cr: r[4], h: r[5] || [], f: r[6] || '', u: r[7] ? 1 : 0, g: Array.isArray(r[8]) ? r[8] : [], t: r[9] && typeof r[9] === 'object' ? r[9] : {}, pp: +r[10] || 0, wt: +r[11] || 0, cl: r[12] ?? -1 }));
+    else if (k.startsWith('F-')) d.forEach(r => F.push({ id: r[0], n: r[1], cr: r[2], cl: r[3] ?? -1 }));
     else if (k.startsWith('T-')) d.forEach(r => T.push({ id: r[0], p: r[1], n: r[2], d: r[3] }));
     else if (k.startsWith('w-')) d.forEach(r => W.push({ id: r[0], a: r[1], b: r[2], k: r[3] || [] }));
     else d.forEach(r => E.push({ id: r[0], t: r[1], a: r[2], b: r[3], w: r[4] || null }));
@@ -275,6 +284,9 @@ async function load() {
   if (S && !S.w) S = { w: { id: uid(), a: S.a || now() }, t: S.t || null, r: S.r || null }; // старый формат
   if (S) { S.k = S.k || []; S.br = S.br || null; S.bt = S.bt || null; }
   P.sort((x, y) => x.cr - y.cr); F.sort((x, y) => x.cr - y.cr);
+  if (fixColors()) saveP();
+  if (fixCatColors()) saveO();
+  if (F.some(f => !(f.cl >= 0))) { F.forEach((f, i) => { if (!(f.cl >= 0)) f.cl = i % 8; }); saveF(); }
   T.sort((x, y) => x.id < y.id ? -1 : 1);
 }
 
@@ -293,12 +305,12 @@ async function saveChunks(prefix, rows) {
 }
 let queue = Promise.resolve();
 const persist = fn => { queue = queue.then(fn).catch(e => toast('Ошибка сохранения: ' + ((e && e.message) || e))); };
-const saveP = () => persist(() => saveChunks('P-', P.map(p => [p.id, p.n, p.pr, p.c, p.cr, p.h, p.f || '', p.u ? 1 : 0, p.g || [], p.t || {}, p.pp || 0, p.wt || 0])));
+const saveP = () => persist(() => saveChunks('P-', P.map(p => [p.id, p.n, p.pr, p.c, p.cr, p.h, p.f || '', p.u ? 1 : 0, p.g || [], p.t || {}, p.pp || 0, p.wt || 0, p.cl ?? -1])));
 // настройки по умолчанию: вкладки «Все» и «Завершённые» видны, режим «В ожидании» включён, полный экран
-const DEF_OPT = () => ({ hideAll: false, hideDone: false, noWait: false, full: true });
+const DEF_OPT = () => ({ hideAll: false, hideDone: false, noWait: false, full: true, folderCol: false, plainTags: false });
 let opt = DEF_OPT();
 const saveO = () => persist(() => store.set('O', JSON.stringify(opt)));
-const saveF = () => persist(() => saveChunks('F-', F.map(f => [f.id, f.n, f.cr])));
+const saveF = () => persist(() => saveChunks('F-', F.map(f => [f.id, f.n, f.cr, f.cl ?? -1])));
 const saveT = () => persist(() => saveChunks('T-', T.map(t => [t.id, t.p, t.n, t.d])));
 const saveM = ym => persist(() => saveChunks('e-' + ym + '-', E.filter(e => ymOf(e.a) === ym).sort((x, y) => x.a - y.a).map(e => [e.id, e.t, e.a, e.b, e.w])));
 const saveW = ym => persist(() => saveChunks('w-' + ym + '-', W.filter(w => ymOf(w.a) === ym).sort((x, y) => x.a - y.a).map(w => [w.id, w.a, w.b, w.k || []])));
@@ -374,7 +386,7 @@ function newProject(fid = '') {
   if (!noPrice && !(pr >= 0)) return toast('Цена — это число. Или оставь поле пустым и укажи цену позже.');
   if (!(pp >= 0)) return toast('Предоплата — это число. Если её не было, оставь поле пустым.');
   if (!noPrice && pp > pr) return toast('Предоплата больше стоимости проекта — проверь суммы.');
-  P.push({ id: uid(), n, pr: noPrice ? 0 : pr, c: 0, cr: now(), h: [], f: fid, u: noPrice ? 1 : 0, g: [], t: tt, pp }); saveP(); newPOpen = false; render();
+  P.push({ id: uid(), n, pr: noPrice ? 0 : pr, c: 0, cr: now(), h: [], f: fid, u: noPrice ? 1 : 0, g: [], t: tt, pp, cl: freeColor() }); saveP(); newPOpen = false; render();
 }
 function newTask(pid, andGo, src, done) {
   const el = src ? (src.tagName === 'INPUT' ? src : src.parentNode.querySelector('input')) : $('#nt-' + pid), n = el.value.trim();
@@ -406,10 +418,11 @@ function setWait(pid, on) {
   toast(on ? `«${p.n}» — в ожидании.\nОн теперь во вкладке «В ожидании».` : `«${p.n}» снова в работе — вернулся в ${folder(p.f) ? '«' + folder(p.f).n + '»' : 'свою папку'}.`);
 }
 const fname = p => (p && folder(p.f) || { n: 'Без папки' }).n;
-function newFolder() {
-  const el = $('#nf'), n = el.value.trim(); if (!n) return el.focus();
-  F.push({ id: uid(), n, cr: now() }); saveF(); render();
-  const el2 = $('#nf'); if (el2) el2.focus();
+function newFolder(done) {
+  const el = $('#nf'), n = el.value.trim(); if (!n) return done ? el.blur() : el.focus();
+  const used = F.map(f => f.cl); F.push({ id: uid(), n, cr: now(), cl: COLS.findIndex((_, i) => !used.includes(i)) }); saveF();
+  if (done) { el.blur(); render(); return; } // Enter — создать и закрыть клавиатуру
+  render(); const el2 = $('#nf'); if (el2) el2.focus(); // «Создать» — сразу вводить следующую
 }
 async function delFolder(id) {
   const f = folder(id); if (!(await ask(`Удалить папку «${f.n}»? Проекты не удалятся — они останутся во вкладке «Все».`, 'Удалить', true))) return;
@@ -619,7 +632,7 @@ async function delShift(id) {
 let lastBk = 0, bkText = null, bkRestore = false;
 function backupData() {
   return JSON.stringify({ app: 'studio-timer', v: 1, at: now(),
-    F: F.map(f => [f.id, f.n, f.cr]), P: P.map(p => [p.id, p.n, p.pr, p.c, p.cr, p.h, p.f || '', p.u ? 1 : 0, p.g || [], p.t || {}, p.pp || 0, p.wt || 0]), T: T.map(t => [t.id, t.p, t.n, t.d]),
+    F: F.map(f => [f.id, f.n, f.cr, f.cl ?? -1]), P: P.map(p => [p.id, p.n, p.pr, p.c, p.cr, p.h, p.f || '', p.u ? 1 : 0, p.g || [], p.t || {}, p.pp || 0, p.wt || 0, p.cl ?? -1]), T: T.map(t => [t.id, t.p, t.n, t.d]),
     E: E.map(e => [e.id, e.t, e.a, e.b, e.w]), W: W.map(w => [w.id, w.a, w.b, w.k || []]), O: opt, S });
 }
 async function backup() {
@@ -640,8 +653,8 @@ async function restore() {
   let d; try { d = JSON.parse($('#rst').value.trim()); } catch { return toast('Это не похоже на копию: текст повреждён или вставлен не целиком.'); }
   if (!d || d.app !== 'studio-timer' || !Array.isArray(d.P) || !Array.isArray(d.T) || !Array.isArray(d.E)) return toast('Это не копия из этого приложения.');
   if (!(await ask(`Копия от ${fdate(d.at)} ${ftime(d.at)}: проектов ${d.P.length}, задач ${d.T.length}.\n\nВсе текущие данные будут заменены данными из копии.`, 'Восстановить', true))) return;
-  P = d.P.map(r => ({ id: r[0], n: r[1], pr: r[2], c: r[3], cr: r[4], h: r[5] || [], f: r[6] || '', u: r[7] ? 1 : 0, g: Array.isArray(r[8]) ? r[8] : [], t: r[9] && typeof r[9] === 'object' ? r[9] : {}, pp: +r[10] || 0, wt: +r[11] || 0 }));
-  F = (d.F || []).map(r => ({ id: r[0], n: r[1], cr: r[2] }));
+  P = d.P.map(r => ({ id: r[0], n: r[1], pr: r[2], c: r[3], cr: r[4], h: r[5] || [], f: r[6] || '', u: r[7] ? 1 : 0, g: Array.isArray(r[8]) ? r[8] : [], t: r[9] && typeof r[9] === 'object' ? r[9] : {}, pp: +r[10] || 0, wt: +r[11] || 0, cl: r[12] ?? -1 }));
+  F = (d.F || []).map(r => ({ id: r[0], n: r[1], cr: r[2], cl: r[3] ?? -1 })); F.forEach((f, i) => { if (!(f.cl >= 0)) f.cl = i % 8; });
   const keep = { autoBk: opt.autoBk };
   opt = Object.assign(DEF_OPT(), keep, d.O || {}); setFull(opt.full !== false);
   T = d.T.map(r => ({ id: r[0], p: r[1], n: r[2], d: r[3] }));
@@ -654,6 +667,7 @@ async function restore() {
     for (let i = 0; i < keys.length; i += 40) await store.del(keys.slice(i, i + 40));
     Object.keys(cache).forEach(k => delete cache[k]);
   });
+  P.sort((x, y) => x.cr - y.cr); fixColors(); fixCatColors();
   saveP(); saveT(); saveF(); saveO(); fIdx = 0;
   new Set(E.map(e => ymOf(e.a))).forEach(saveM);
   new Set(W.map(w => ymOf(w.a))).forEach(saveW);
@@ -879,8 +893,27 @@ async function makeReport() {
 
 /* ===== Экраны ===== */
 try { if (V('6.1')) { tg.setHeaderColor('#0a0a0c'); tg.setBackgroundColor('#0a0a0c'); } if (V('7.10')) tg.setBottomBarColor('#0a0a0c'); } catch {}
-const COLS = ['#4a8cff', '#8b7cff', '#4ad6f0', '#ff8a4a', '#ff6fb1', '#f0d24a', '#5cf0a8', '#b6b0ff'];
-const colorOf = pid => COLS[Math.max(0, P.findIndex(p => p.id === pid)) % COLS.length];
+// первые 8 цветов — прежние (у старых проектов цвет не изменится)
+const COLS = ['#4a8cff', '#8b7cff', '#4ad6f0', '#ff8a4a', '#ff6fb1', '#f0d24a', '#5cf0a8', '#b6b0ff', '#ff5d5d', '#a3e05a', '#2fc4a0', '#c9a27a', '#e86f4a', '#ffcf6f', '#d68cff', '#6fa8ff', '#9ae6ff', '#ff9e9e', '#7f8aa3', '#e0e0e6'];
+const byFolderCol = p => opt.folderCol && p && folder(p.f); // цвет задаёт папка
+const pColIdx = p => byFolderCol(p) ? folder(p.f).cl : p && p.cl >= 0 ? p.cl : 0;
+const colorOf = pid => COLS[(pColIdx(proj(pid)) >= 0 ? pColIdx(proj(pid)) : 0) % COLS.length];
+let cpkF = null;
+function setFColor(id, i) { const f = folder(id); if (f) { f.cl = i; saveF(); } cpkF = null; render(); }
+function setFolderCol(on) {
+  if (!on) { P.forEach(p => { if (byFolderCol(p)) p.cl = folder(p.f).cl; }); saveP(); } // цвет папки остаётся за проектом
+  opt.folderCol = on; saveO(); render();
+}
+// цвет закрепляется за проектом: старым — по прежнему порядку, новым — наименее занятый
+function fixColors() { let ch = false; P.forEach((p, i) => { if (!(p.cl >= 0)) { p.cl = i % 8; ch = true; } }); return ch; }
+function fixCatColors() { let ch = false; cats().forEach((c, i) => { if (typeof c.cl !== 'number') { c.cl = [1, 3, 2, 4, 5, 6, 7, 0][i % 8]; ch = true; } }); return ch; }
+function freeColor() { const n = COLS.map((_, i) => P.filter(p => !p.c && p.cl === i).length); return n.indexOf(Math.min(...n)); }
+const swatches = (cur, fn) => `<div class="cpk">${COLS.map((c, i) => `<button style="background:${c}" class="${i === cur ? 'on' : ''}" onclick="${fn}(${i})" aria-label="Цвет ${i + 1}"></button>`).join('')}</div>`;
+function setPColor(pid, i) { proj(pid).cl = i; saveP(); render(); }
+const catColor = c => COLS[c && typeof c.cl === 'number' && c.cl >= 0 ? c.cl % COLS.length : 1];
+const tagStyle = col => opt.plainTags ? '' : `style="background:${col}24;color:${col}"`;
+let cpkCat = null;
+function setCatColor(id, i) { const c = cats().find(x => x.id === id); if (c) { c.cl = i; saveO(); } cpkCat = null; render(); }
 const dot = (c, live) => `<span class="dot ${live ? 'live' : ''}" style="background:${c}"></span>`;
 // Кольцо сессии по хронологии: каждый отрезок работы — зелёная дуга, каждый перерыв — оранжевая, на своём месте во времени.
 // Круг целиком = вся сессия от старта до текущего момента.
@@ -1035,14 +1068,16 @@ function foldersCard() {
   const dis = 'disabled style="opacity:.2"';
   let h = `<div class="card"><div class="lbl" style="margin-bottom:4px">Папки</div>`;
   h += F.length ? F.map((f, i) => `<div class="line">${ren === 'f:' + f.id ? renInput(f.n, 40)
-    : `<span>📁 ${esc(f.n)} <span class="hint num">${P.filter(p => p.f === f.id).length}</span></span><span style="white-space:nowrap">
-      <button class="x" onclick="moveFolder('${f.id}',-1)" ${i ? '' : dis} aria-label="Выше">↑</button><button class="x" onclick="moveFolder('${f.id}',1)" ${i < F.length - 1 ? '' : dis} aria-label="Ниже">↓</button><button class="x" onclick="startRen('f:${f.id}')" aria-label="Переименовать">✎</button><button class="x" onclick="delFolder('${f.id}')" aria-label="Удалить" style="color:var(--red)">✕</button></span>`}</div>`).join('')
+    : `<span>${opt.folderCol ? `<button class="cdot" style="background:${COLS[f.cl >= 0 ? f.cl : 0]}" onclick="cpkF=cpkF==='${f.id}'?null:'${f.id}';render()" aria-label="Цвет папки"></button>` : '📁 '}${esc(f.n)} <span class="hint num">${P.filter(p => p.f === f.id).length}</span></span><span style="white-space:nowrap">
+      <button class="x" onclick="moveFolder('${f.id}',-1)" ${i ? '' : dis} aria-label="Выше">↑</button><button class="x" onclick="moveFolder('${f.id}',1)" ${i < F.length - 1 ? '' : dis} aria-label="Ниже">↓</button><button class="x" onclick="startRen('f:${f.id}')" aria-label="Переименовать">✎</button><button class="x" onclick="delFolder('${f.id}')" aria-label="Удалить" style="color:var(--red)">✕</button></span>`}</div>${opt.folderCol && cpkF === f.id ? swatches(f.cl, `setFColor.bind(null,'${f.id}')`) + '<div style="height:8px"></div>' : ''}`).join('')
     : '<div class="hint" style="padding:8px 0">Папок пока нет</div>';
-  h += `<div class="inl" style="margin-top:8px"><input id="nf" placeholder="Название папки" maxlength="40" onkeydown="if(event.key==='Enter')newFolder()"><button class="btn sm" onclick="newFolder()">Создать</button></div>`;
+  h += `<div class="inl" style="margin-top:8px"><input id="nf" placeholder="Название папки" maxlength="40" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();newFolder(true)}"><button class="btn sm" onpointerdown="event.preventDefault()" onclick="newFolder()">Создать</button></div>`;
   h += `<div class="row" style="border-top:1px solid var(--line);margin-top:6px;padding-top:12px"><span>Вкладка «Все»<div class="hint">${opt.hideAll ? 'Скрыта. Проекты без папки — во вкладке «Без папки».' : 'Показывает все проекты сразу'}</div></span>
     <label class="tgl"><input type="checkbox" ${opt.hideAll ? '' : 'checked'} onchange="opt.hideAll=!this.checked;fIdx=0;kIdx=0;saveO();render()" aria-label="Показывать вкладку «Все»"><i></i></label></div>`;
   h += `<div class="row" style="border-top:1px solid var(--line);margin-top:6px;padding-top:12px"><span>Вкладка «Завершённые»<div class="hint">${opt.hideDone ? 'Скрыта. Закрытые проекты остаются в своих папках.' : 'Закрытые проекты — отдельно, свежие сверху'}</div></span>
     <label class="tgl"><input type="checkbox" ${opt.hideDone ? '' : 'checked'} onchange="opt.hideDone=!this.checked;fIdx=0;kIdx=0;saveO();render()" aria-label="Показывать вкладку «Завершённые»"><i></i></label></div>`;
+  h += `<div class="row" style="border-top:1px solid var(--line);margin-top:6px;padding-top:12px"><span>Цвет по папкам<div class="hint">${opt.folderCol ? 'Проекты окрашены в цвет своей папки. Цвет папки — кружок у названия.' : 'Выключено: у каждого проекта свой цвет'}</div></span>
+    <label class="tgl"><input type="checkbox" ${opt.folderCol ? 'checked' : ''} onchange="setFolderCol(this.checked)" aria-label="Цвет по папкам"><i></i></label></div>`;
   h += `<div class="row" style="border-top:1px solid var(--line);margin-top:6px;padding-top:12px"><span>Режим «В ожидании»<div class="hint">${opt.noWait ? 'Выключен. Отметки сохранены — включишь, и проекты вернутся во вкладку.' : 'Переключатель в проекте и отдельная вкладка'}</div></span>
     <label class="tgl"><input type="checkbox" ${opt.noWait ? '' : 'checked'} onchange="opt.noWait=!this.checked;fIdx=0;kIdx=0;saveO();render()" aria-label="Режим «В ожидании»"><i></i></label></div>`;
   return h + '</div>';
@@ -1087,23 +1122,25 @@ function projCard(p, showF) {
     <div class="row"><span>${dot(colorOf(p.id))}<b>${esc(p.n)}</b></span>${p.c ? '<span class="badge done">закрыт</span>' : isW(p) ? '<span class="badge wait">в ожидании</span>' : '<span class="badge">в работе</span>'}</div>
     <div class="row" style="margin-top:10px">${p.u ? '<span style="color:var(--amb)">цена не указана</span>' : `<span class="num">${money(p.pr)}${!p.c && p.pp ? ` <span class="hint">· получено ${money(paid(p))}</span>` : ''}</span>`}<span class="num" style="color:${s && !p.u && p.c ? 'var(--acc)' : 'var(--dim)'}">${s && !p.u && p.c ? money(rate(p)) + '/ч' : p.c ? '—' : ''}</span></div>
     <div class="hbar"><i style="width:${all ? done / all * 100 : 0}%;background:${colorOf(p.id)}"></i></div>
-    ${projTags(p).length ? `<div class="tags" style="margin-top:8px">${projTags(p).map(x => `<span class="tag">${esc(tagLabel(x))}</span>`).join('')}</div>` : ''}
+    ${projTags(p).length ? `<div class="tags" style="margin-top:8px">${projTags(p).map(x => `<span class="tag" ${tagStyle(x.col)}>${esc(tagLabel(x))}</span>`).join('')}</div>` : ''}
     <div class="row hint" style="margin-top:6px"><span class="num">${fh(s)}${showF && folder(p.f) ? `</span><span>📁 ${esc(folder(p.f).n)}` : ''}</span><span class="num">задачи ${done}/${all}</span></div></button>`;
 }
 const cats = () => opt.tc || [];
 const catName = id => (cats().find(c => c.id === id) || {}).n;
 // все теги проекта: по категориям + старые без категории
-const projTags = p => cats().filter(c => p.t && String(p.t[c.id] || '').trim()).map(c => ({ c: c.n, v: p.t[c.id] })).concat((p.g || []).map(v => ({ c: '', v })));
+const projTags = p => cats().filter(c => p.t && String(p.t[c.id] || '').trim()).map(c => ({ c: c.n, v: p.t[c.id], col: catColor(c) })).concat((p.g || []).map(v => ({ c: '', v, col: COLS[1] })));
 const tagLabel = x => x.c ? `${x.c}: ${x.v}` : '#' + x.v;
 const tagsTxt = (p, sep = '; ') => projTags(p).map(tagLabel).join(sep);
 const catValues = id => [...new Set(P.map(p => p.t && p.t[id]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru'));
 const catLists = () => ''; // подсказки — своим списком (acOpen), datalist в Telegram на телефоне не работает
-const catFields = (pref, p) => cats().map(c => `<label class="tf"><span>${esc(c.n)}:</span><input id="${pref}${c.id}" data-ac="${c.id}" autocomplete="off" autocapitalize="sentences" maxlength="60" value="${esc((p && p.t && p.t[c.id]) || '')}"${p ? ` onchange="setTag('${p.id}','${c.id}',this.value)"` : ''}></label>`).join('');
+const catFields = (pref, p) => cats().map(c => `<label class="tf"><span${opt.plainTags ? '' : ` style="color:${catColor(c)}"`}>${esc(c.n)}:</span><input id="${pref}${c.id}" data-ac="${c.id}" autocomplete="off" autocapitalize="sentences" maxlength="60" value="${esc((p && p.t && p.t[c.id]) || '')}"${p ? ` onchange="setTag('${p.id}','${c.id}',this.value)"` : ''}></label>`).join('');
 function setTag(pid, cid, v) { const p = proj(pid); p.t = p.t || {}; v = String(v).trim().slice(0, 60); if (v) p.t[cid] = v; else delete p.t[cid]; saveP(); render(); }
-function addCat() {
-  const el = $('#nc'), n = el.value.trim().slice(0, 30); if (!n) return el.focus();
+function addCat(done) {
+  const el = $('#nc'), n = el.value.trim().slice(0, 30); if (!n) return done ? el.blur() : el.focus();
   if (cats().some(c => c.n.toLowerCase() === n.toLowerCase())) return toast('Такая категория уже есть');
-  opt.tc = cats().concat([{ id: uid(), n }]); saveO(); render(); const e2 = $('#nc'); if (e2) e2.focus();
+  const used = cats().map(c => c.cl); opt.tc = cats().concat([{ id: uid(), n, cl: [1, 2, 3, 4, 5, 6, 7, 0, 8, 9, 10, 11].find(i => !used.includes(i)) ?? 1 }]); saveO();
+  if (done) { el.blur(); render(); return; }
+  render(); const e2 = $('#nc'); if (e2) e2.focus();
 }
 function moveCat(id, d) { const a = cats().slice(), i = a.findIndex(c => c.id === id), j = i + d; if (i < 0 || j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; opt.tc = a; saveO(); render(); }
 async function delCat(id) {
@@ -1115,10 +1152,12 @@ function catsCard() {
   const dis = 'disabled style="opacity:.2"', a = cats();
   let h = `<div class="card"><div class="lbl" style="margin-bottom:4px">Категории тегов</div>`;
   h += a.length ? a.map((c, i) => `<div class="line">${ren === 'c:' + c.id ? renInput(c.n, 30)
-    : `<span>${esc(c.n)} <span class="hint num">${catValues(c.id).length}</span></span><span style="white-space:nowrap">
-      <button class="x" onclick="moveCat('${c.id}',-1)" ${i ? '' : dis} aria-label="Выше">↑</button><button class="x" onclick="moveCat('${c.id}',1)" ${i < a.length - 1 ? '' : dis} aria-label="Ниже">↓</button><button class="x" onclick="startRen('c:${c.id}')" aria-label="Переименовать">✎</button><button class="x" onclick="delCat('${c.id}')" aria-label="Удалить" style="color:var(--red)">✕</button></span>`}</div>`).join('')
+    : `<span>${opt.plainTags ? '' : `<button class="cdot" style="background:${catColor(c)}" onclick="cpkCat=cpkCat==='${c.id}'?null:'${c.id}';render()" aria-label="Цвет категории"></button>`}${esc(c.n)} <span class="hint num">${catValues(c.id).length}</span></span><span style="white-space:nowrap">
+      <button class="x" onclick="moveCat('${c.id}',-1)" ${i ? '' : dis} aria-label="Выше">↑</button><button class="x" onclick="moveCat('${c.id}',1)" ${i < a.length - 1 ? '' : dis} aria-label="Ниже">↓</button><button class="x" onclick="startRen('c:${c.id}')" aria-label="Переименовать">✎</button><button class="x" onclick="delCat('${c.id}')" aria-label="Удалить" style="color:var(--red)">✕</button></span>`}</div>${cpkCat === c.id && !opt.plainTags ? swatches(typeof c.cl === 'number' && c.cl >= 0 ? c.cl : 1, `setCatColor.bind(null,'${c.id}')`) + '<div style="height:8px"></div>' : ''}`).join('')
     : '<div class="hint" style="padding:8px 0">Категорий пока нет. Каждая категория — отдельное поле при создании проекта.</div>';
-  return h + `<div class="inl" style="margin-top:8px"><input id="nc" placeholder="Название категории" maxlength="30" onkeydown="if(event.key==='Enter')addCat()"><button class="btn sm" onclick="addCat()">Создать</button></div></div>`;
+  h += `<div class="inl" style="margin-top:8px"><input id="nc" placeholder="Название категории" maxlength="30" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();addCat(true)}"><button class="btn sm" onpointerdown="event.preventDefault()" onclick="addCat()">Создать</button></div>`;
+  return h + `<div class="row" style="border-top:1px solid var(--line);margin-top:6px;padding-top:12px"><span>Цветные теги<div class="hint">${opt.plainTags ? 'Выключено: теги нейтральные. Цвета сохранены — вернутся при включении.' : 'Теги окрашены в цвет своей категории'}</div></span>
+    <label class="tgl"><input type="checkbox" ${opt.plainTags ? '' : 'checked'} onchange="opt.plainTags=!this.checked;cpkCat=null;saveO();render()" aria-label="Цветные теги"><i></i></label></div></div>`;
 }
 const parseTags = v => [...new Set(String(v || '').split(/[,;\n]+/).map(x => x.trim().replace(/^#/, '').slice(0, 30)).filter(Boolean))].slice(0, 12);
 const allTags = () => [...new Set(P.flatMap(p => p.g || []))].sort((a, b) => a.localeCompare(b, 'ru'));
@@ -1163,6 +1202,7 @@ function viewProject(p) {
       ${kpi('Стоимость', p.u ? '—' : money(p.pr), p.u ? 'не указана' : p.h.length ? 'доплат: ' + p.h.length : '')}${kpi('Задачи', done + '/' + ts.length, ts.length ? pct(done, ts.length) + '% готово' : '')}</div>
     ${cats().length || (p.g || []).length ? `<div class="card"><div class="lbl" style="margin-bottom:6px">Теги</div>${catFields('pt-' + p.id + '-', p)}${catLists()}
       ${(p.g || []).length ? `<div class="hint" style="margin:6px 0 6px">Без категории:</div><div class="tags">${tagChips(p.g, `delTag.bind(null,'${p.id}')`)}</div>` : ''}</div>` : ''}
+    <details class="card cdet"><summary><span class="lbl">Цвет</span>${dot(colorOf(p.id))}</summary>${byFolderCol(p) ? `<div class="row" style="margin-top:8px;justify-content:flex-start">${dot(colorOf(p.id))}<span class="hint">цвет папки «${esc(folder(p.f).n)}» — меняется в настройках</span></div>` : swatches(p.cl, `setPColor.bind(null,'${p.id}')`)}</details>
     <div class="card"><div class="lbl">Папка</div><select onchange="setFolder('${p.id}',this.value)" style="margin-bottom:0"><option value="">Без папки</option>${F.map(f => `<option value="${f.id}" ${p.f === f.id ? 'selected' : ''}>${esc(f.n)}</option>`).join('')}</select></div>
     <div class="card"><div class="lbl">Стоимость, ₽</div>
       <input type="text" inputmode="decimal" value="${p.u ? '' : p.pr}" placeholder="Впиши цену, ₽" onchange="setPrice('${p.id}',this.value)" class="num">
